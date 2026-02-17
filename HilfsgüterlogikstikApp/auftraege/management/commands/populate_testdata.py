@@ -1,8 +1,7 @@
 from django.core.management.base import BaseCommand
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group, Permission
 from django.db import connection
 from datetime import datetime, timedelta
-from permissions.models import Rolle, Permission, RolePermission, UserRolle
 from core.models import Status
 from auftraege.models import Auftrag, Items
 from pruefung.models import Pruefung, Pruefposition
@@ -18,11 +17,8 @@ class Command(BaseCommand):
         # Clear existing data
         self.clear_data()
 
-        # Create Rollen
-        self.create_roles()
-
-        # Create Permissions
-        self.create_permissions()
+        # Create Groups (Rollen)
+        self.create_groups()
 
         # Create Status
         self.create_status()
@@ -48,46 +44,27 @@ class Command(BaseCommand):
             Pruefung.objects.all().delete()
             Items.objects.all().delete()
             Auftrag.objects.all().delete()
-            UserRolle.objects.all().delete()
-            RolePermission.objects.all().delete()
             Status.objects.all().delete()
-            Permission.objects.all().delete()
-            Rolle.objects.all().delete()
+            
+            # Delete test users and groups
             User.objects.filter(username__startswith='test_').delete()
+            Group.objects.all().delete()
         finally:
             # Re-enable foreign key checks
             with connection.cursor() as cursor:
                 cursor.execute('SET FOREIGN_KEY_CHECKS=1')
 
-    def create_roles(self):
-        """Create user roles"""
-        roles = [
-            {'name': 'Administrator'},
-            {'name': 'Prüfer'},
-            {'name': 'Logistiker'},
-            {'name': 'Viewer'},
+    def create_groups(self):
+        """Create user groups (Rollen)"""
+        groups = [
+            'Administrator',
+            'Prüfer',
+            'Logistiker',
+            'Viewer',
         ]
-        for role_data in roles:
-            Rolle.objects.get_or_create(**role_data)
-        self.stdout.write(self.style.SUCCESS('  ✓ Rollen erstellt'))
-
-    def create_permissions(self):
-        """Create system permissions"""
-        permissions = [
-            {'name': 'Can create Auftrag'},
-            {'name': 'Can edit Auftrag'},
-            {'name': 'Can delete Auftrag'},
-            {'name': 'Can view Auftrag'},
-            {'name': 'Can create Prüfung'},
-            {'name': 'Can edit Prüfung'},
-            {'name': 'Can delete Prüfung'},
-            {'name': 'Can view Prüfung'},
-            {'name': 'Can view Reports'},
-            {'name': 'Can manage Users'},
-        ]
-        for perm_data in permissions:
-            Permission.objects.get_or_create(**perm_data)
-        self.stdout.write(self.style.SUCCESS('  ✓ Berechtigungen erstellt'))
+        for group_name in groups:
+            Group.objects.get_or_create(name=group_name)
+        self.stdout.write(self.style.SUCCESS('  ✓ Gruppen erstellt'))
 
     def create_status(self):
         """Create status entries"""
@@ -134,16 +111,16 @@ class Command(BaseCommand):
                 user.save()
             users[user_data['username']] = user
 
-        # Assign roles to users
-        admin_role = Rolle.objects.get(name='Administrator')
-        pruefer_role = Rolle.objects.get(name='Prüfer')
-        logistiker_role = Rolle.objects.get(name='Logistiker')
-        viewer_role = Rolle.objects.get(name='Viewer')
+        # Assign users to groups
+        admin_group = Group.objects.get(name='Administrator')
+        pruefer_group = Group.objects.get(name='Prüfer')
+        logistiker_group = Group.objects.get(name='Logistiker')
+        viewer_group = Group.objects.get(name='Viewer')
 
-        UserRolle.objects.get_or_create(user=users['test_admin'], rolle=admin_role)
-        UserRolle.objects.get_or_create(user=users['test_pruefer'], rolle=pruefer_role)
-        UserRolle.objects.get_or_create(user=users['test_logistiker'], rolle=logistiker_role)
-        UserRolle.objects.get_or_create(user=users['test_viewer'], rolle=viewer_role)
+        users['test_admin'].groups.add(admin_group)
+        users['test_pruefer'].groups.add(pruefer_group)
+        users['test_logistiker'].groups.add(logistiker_group)
+        users['test_viewer'].groups.add(viewer_group)
 
         self.stdout.write(self.style.SUCCESS('  ✓ Benutzer erstellt'))
 
@@ -178,7 +155,7 @@ class Command(BaseCommand):
         auftraege = {}
         for auftrag_data in auftraege_data:
             auftrag, _ = Auftrag.objects.get_or_create(**auftrag_data)
-            auftraege[auftrag.item_id] = auftrag
+            auftraege[auftrag.auftrag_id] = auftrag
 
         # Create Items entries
         items_data = [
@@ -197,7 +174,7 @@ class Command(BaseCommand):
                     item_name=item_data['item_name'],
                     defaults={'menge': item_data['menge']}
                 )
-                items_dict[item.position_id] = item
+                items_dict[item.item_id] = item
 
         # Create Prüfungen
         pruefung_status = Status.objects.get(name='Bestanden', typ='Pruefung')

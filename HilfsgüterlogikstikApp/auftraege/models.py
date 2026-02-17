@@ -3,7 +3,7 @@ from django.db import models
 
 class Auftrag(models.Model):
     """Aufträge für Hilfsgüter"""
-    item_id = models.AutoField(primary_key=True)
+    auftrag_id = models.AutoField(primary_key=True)
     auftragnamen = models.CharField(max_length=255)
     kategorie = models.CharField(max_length=255)
     verfallsdatum = models.DateField()
@@ -19,7 +19,7 @@ class Auftrag(models.Model):
 
 class Items(models.Model):
     """Items/Positionen in Aufträgen"""
-    position_id = models.AutoField(primary_key=True)
+    item_id = models.AutoField(primary_key=True)
     auftrag = models.ForeignKey(Auftrag, on_delete=models.CASCADE, related_name='items')
     item_name = models.CharField(max_length=255)
     menge = models.IntegerField()
@@ -30,4 +30,4 @@ class Items(models.Model):
     class Meta:
         verbose_name = "Item"
         verbose_name_plural = "Items"
-        ordering = ['auftrag', 'position_id']
+        ordering = ['auftrag', 'item_id']

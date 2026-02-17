@@ -59,7 +59,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     # Custom apps
-    'permissions.apps.PermissionsConfig',
     'core.apps.CoreConfig',
     'auftraege.apps.AuftraegeConfig',
     'pruefung.apps.PruefungConfig',
