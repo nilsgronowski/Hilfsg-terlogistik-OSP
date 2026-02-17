@@ -58,6 +58,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    # Custom apps
+    'permissions.apps.PermissionsConfig',
+    'core.apps.CoreConfig',
+    'auftraege.apps.AuftraegeConfig',
+    'pruefung.apps.PruefungConfig',
+    'schwund.apps.SchwundConfig',
 ]
 
 MIDDLEWARE = [
@@ -149,3 +155,5 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
