@@ -1,11 +1,11 @@
 from django.contrib import admin
-from .models import Pruefung, Pruefposition
+from .models import Pruefung, PruefErgebnis, Schwund
 
 
-class PruefpositionInline(admin.TabularInline):
-    model = Pruefposition
+class PruefErgebnisInline(admin.TabularInline):
+    model = PruefErgebnis
     extra = 1
-    fields = ('pruefposition_id', 'item', 'status', 'bemerkung')
+    fields = ('pruefergebnis_id', 'item', 'status', 'bemerkung')
 
 
 @admin.register(Pruefung)
@@ -14,13 +14,22 @@ class PruefungAdmin(admin.ModelAdmin):
     list_filter = ('gesamtstatus', 'datum')
     search_fields = ('auftrag__auftragnamen', 'pruefer__username')
     readonly_fields = ('datum',)
-    inlines = [PruefpositionInline]
+    inlines = [PruefErgebnisInline]
     ordering = ('-datum',)
 
 
-@admin.register(Pruefposition)
-class PruefpositionAdmin(admin.ModelAdmin):
-    list_display = ('pruefposition_id', 'pruefung', 'item', 'status')
+@admin.register(PruefErgebnis)
+class PruefErgebnisAdmin(admin.ModelAdmin):
+    list_display = ('pruefergebnis_id', 'pruefung', 'item', 'status')
     list_filter = ('status', 'pruefung__auftrag')
     search_fields = ('pruefung__auftrag__auftragnamen', 'bemerkung')
-    ordering = ('pruefung', 'pruefposition_id')
+    ordering = ('pruefung', 'pruefergebnis_id')
+
+
+@admin.register(Schwund)
+class SchwundAdmin(admin.ModelAdmin):
+    list_display = ('schwund_id', 'auftrag', 'klassifizierung', 'pruefer', 'datum', 'status')
+    list_filter = ('status', 'klassifizierung', 'datum')
+    search_fields = ('auftrag__auftragnamen', 'klassifizierung', 'notiz')
+    readonly_fields = ('datum',)
+    ordering = ('-datum',)

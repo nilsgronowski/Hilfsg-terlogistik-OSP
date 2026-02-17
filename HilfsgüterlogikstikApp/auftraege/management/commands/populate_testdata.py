@@ -1,11 +1,10 @@
 from django.core.management.base import BaseCommand
-from django.contrib.auth.models import User, Group, Permission
+from django.contrib.auth.models import User, Group
 from django.db import connection
 from datetime import datetime, timedelta
 from core.models import Status
 from auftraege.models import Auftrag, Items
-from pruefung.models import Pruefung, Pruefposition
-from schwund.models import Schwund
+from pruefung.models import Pruefung, PruefErgebnis, Schwund
 
 
 class Command(BaseCommand):
@@ -40,7 +39,7 @@ class Command(BaseCommand):
         try:
             # Delete all test data
             Schwund.objects.all().delete()
-            Pruefposition.objects.all().delete()
+            PruefErgebnis.objects.all().delete()
             Pruefung.objects.all().delete()
             Items.objects.all().delete()
             Auftrag.objects.all().delete()
@@ -189,10 +188,10 @@ class Command(BaseCommand):
                 }
             )
 
-            # Create Prüfpositionen
+            # Create Prüfergebnisse
             for item in auftrag.items.all():
                 position_status = Status.objects.get(name='Vollständig', typ='Position')
-                Pruefposition.objects.get_or_create(
+                PruefErgebnis.objects.get_or_create(
                     pruefung=pruefung,
                     item=item,
                     defaults={

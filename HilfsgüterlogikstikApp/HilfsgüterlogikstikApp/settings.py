@@ -62,7 +62,6 @@ INSTALLED_APPS = [
     'core.apps.CoreConfig',
     'auftraege.apps.AuftraegeConfig',
     'pruefung.apps.PruefungConfig',
-    'schwund.apps.SchwundConfig',
 ]
 
 MIDDLEWARE = [
