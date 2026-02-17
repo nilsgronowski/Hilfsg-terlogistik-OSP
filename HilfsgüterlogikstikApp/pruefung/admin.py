@@ -1,4 +1,5 @@
 from django.contrib import admin
+from auftraege.models import Items
 from .models import Pruefung, PruefErgebnis, Schwund
 
 
@@ -6,6 +7,19 @@ class PruefErgebnisInline(admin.TabularInline):
     model = PruefErgebnis
     extra = 1
     fields = ('pruefergebnis_id', 'item', 'status', 'bemerkung')
+
+    def get_formset(self, request, obj=None, **kwargs):
+        request._pruefung_obj = obj
+        return super().get_formset(request, obj, **kwargs)
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == 'item':
+            pruefung = getattr(request, '_pruefung_obj', None)
+            if pruefung and pruefung.auftrag_id:
+                kwargs['queryset'] = Items.objects.filter(auftrag=pruefung.auftrag)
+            else:
+                kwargs['queryset'] = Items.objects.none()
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 
 @admin.register(Pruefung)
