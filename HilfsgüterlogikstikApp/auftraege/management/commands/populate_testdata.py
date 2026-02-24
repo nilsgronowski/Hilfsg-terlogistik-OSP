@@ -3,7 +3,7 @@ from django.contrib.auth.models import User, Group
 from django.db import connection
 from datetime import datetime, timedelta
 from core.models import Status
-from auftraege.models import Auftrag, Items
+from auftraege.models import Auftrag, Container, Box, Item, ItemBestand
 from pruefung.models import Pruefung, PruefErgebnis, Schwund
 
 
@@ -41,7 +41,10 @@ class Command(BaseCommand):
             Schwund.objects.all().delete()
             PruefErgebnis.objects.all().delete()
             Pruefung.objects.all().delete()
-            Items.objects.all().delete()
+            Item.objects.all().delete()
+            ItemBestand.objects.all().delete()
+            Box.objects.all().delete()
+            Container.objects.all().delete()
             Auftrag.objects.all().delete()
             Status.objects.all().delete()
             
@@ -124,7 +127,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS('  ✓ Benutzer erstellt'))
 
     def create_auftraege(self):
-        """Create test Aufträge with items"""
+        """Create test Aufträge with hierarchical structure"""
         today = datetime.now().date()
 
         # Create Aufträge
@@ -156,24 +159,131 @@ class Command(BaseCommand):
             auftrag, _ = Auftrag.objects.get_or_create(**auftrag_data)
             auftraege[auftrag.auftrag_id] = auftrag
 
-        # Create Items entries
-        items_data = [
-            {'auftrag_id': 1, 'item_name': 'Verbandmaterial', 'menge': 100},
-            {'auftrag_id': 1, 'item_name': 'Desinfektionsmittel', 'menge': 50},
-            {'auftrag_id': 2, 'item_name': 'Konservenware', 'menge': 500},
-            {'auftrag_id': 3, 'item_name': 'Wolldecken', 'menge': 200},
-            {'auftrag_id': 4, 'item_name': 'Trinkwasser', 'menge': 75},
-        ]
+        # Create Container für Auftrag 1 (Medizinische Ausrüstung)
+        container1_1 = Container.objects.create(
+            auftrag=auftraege[1],
+            container_name='Container A1',
+            beschreibung='Medizinische Verbrauchsmaterialien'
+        )
+        container1_2 = Container.objects.create(
+            auftrag=auftraege[1],
+            container_name='Container A2',
+            beschreibung='Instrumente und Geräte'
+        )
 
-        items_dict = {}
-        for item_data in items_data:
-            if item_data['auftrag_id'] in auftraege:
-                item, _ = Items.objects.get_or_create(
-                    auftrag=auftraege[item_data['auftrag_id']],
-                    item_name=item_data['item_name'],
-                    defaults={'menge': item_data['menge']}
-                )
-                items_dict[item.item_id] = item
+        # Create Boxen für Container 1-1
+        box1_1_1 = Box.objects.create(
+            container=container1_1,
+            box_name='Box 1',
+            beschreibung='Verbandmaterial'
+        )
+        box1_1_2 = Box.objects.create(
+            container=container1_1,
+            box_name='Box 2',
+            beschreibung='Desinfektionsmittel'
+        )
+
+        # Create Items für Boxen im Container 1-1
+        Item.objects.create(box=box1_1_1, item_name='Verbandmaterial', menge=100)
+        Item.objects.create(box=box1_1_1, item_name='Pflaster', menge=500)
+        Item.objects.create(box=box1_1_2, item_name='Desinfektionsmittel', menge=50)
+        Item.objects.create(box=box1_1_2, item_name='Handschuhe', menge=200)
+
+        # Create Boxen für Container 1-2
+        box1_2_1 = Box.objects.create(
+            container=container1_2,
+            box_name='Box 1',
+            beschreibung='Thermometer und Stethoskope'
+        )
+        Item.objects.create(box=box1_2_1, item_name='Thermometer', menge=30)
+        Item.objects.create(box=box1_2_1, item_name='Stethoskop', menge=15)
+
+        # Create Container für Auftrag 2 (Lebensmittel)
+        container2_1 = Container.objects.create(
+            auftrag=auftraege[2],
+            container_name='Container B1',
+            beschreibung='Konserven und Haltbarware'
+        )
+
+        box2_1_1 = Box.objects.create(
+            container=container2_1,
+            box_name='Box 1',
+            beschreibung='Konservendosen'
+        )
+        box2_1_2 = Box.objects.create(
+            container=container2_1,
+            box_name='Box 2',
+            beschreibung='Trockenware'
+        )
+
+        Item.objects.create(box=box2_1_1, item_name='Konservenware', menge=500)
+        Item.objects.create(box=box2_1_1, item_name='Gemüsekonserven', menge=300)
+        Item.objects.create(box=box2_1_2, item_name='Reis', menge=100)
+        Item.objects.create(box=box2_1_2, item_name='Nudeln', menge=150)
+
+        # Create Container für Auftrag 3 (Winterbedarf)
+        container3_1 = Container.objects.create(
+            auftrag=auftraege[3],
+            container_name='Container C1',
+            beschreibung='Textilien'
+        )
+
+        box3_1_1 = Box.objects.create(
+            container=container3_1,
+            box_name='Box 1',
+            beschreibung='Decken'
+        )
+        box3_1_2 = Box.objects.create(
+            container=container3_1,
+            box_name='Box 2',
+            beschreibung='Winterkleidung'
+        )
+
+        Item.objects.create(box=box3_1_1, item_name='Wolldecken', menge=200)
+        Item.objects.create(box=box3_1_2, item_name='Winterjacken', menge=80)
+        Item.objects.create(box=box3_1_2, item_name='Handschuhe (Winter)', menge=120)
+
+        # Create Container für Auftrag 4 (Wasser & Hygiene)
+        container4_1 = Container.objects.create(
+            auftrag=auftraege[4],
+            container_name='Container D1',
+            beschreibung='Wasserbehälter'
+        )
+
+        box4_1_1 = Box.objects.create(
+            container=container4_1,
+            box_name='Box 1',
+            beschreibung='Trinkwasser'
+        )
+        box4_1_2 = Box.objects.create(
+            container=container4_1,
+            box_name='Box 2',
+            beschreibung='Hygieneartikel'
+        )
+
+        Item.objects.create(box=box4_1_1, item_name='Trinkwasser', menge=75)
+        Item.objects.create(box=box4_1_2, item_name='Seife', menge=200)
+        Item.objects.create(box=box4_1_2, item_name='Zahnbürsten', menge=150)
+
+        # Create ItemBestand (ungebundene Items)
+        ItemBestand.objects.create(
+            auftrag=auftraege[1],
+            item_name='Einwegspritzen',
+            gesamtmenge=500,
+            beschreibung='Noch nicht in Boxen verpackt'
+        )
+        ItemBestand.objects.create(
+            auftrag=auftraege[2],
+            item_name='Energieriegel',
+            gesamtmenge=1000,
+            beschreibung='Im Lager vorrätig'
+        )
+        ItemBestand.objects.create(
+            auftrag=auftraege[3],
+            item_name='Socken',
+            gesamtmenge=300,
+            beschreibung='Noch zu verpacken'
+        )
 
         # Create Prüfungen
         pruefung_status = Status.objects.get(name='Bestanden', typ='Pruefung')
@@ -188,17 +298,19 @@ class Command(BaseCommand):
                 }
             )
 
-            # Create Prüfergebnisse
-            for item in auftrag.items.all():
-                position_status = Status.objects.get(name='Vollständig', typ='Position')
-                PruefErgebnis.objects.get_or_create(
-                    pruefung=pruefung,
-                    item=item,
-                    defaults={
-                        'status': position_status,
-                        'bemerkung': 'Qualität geprüft und bestätigt',
-                    }
-                )
+            # Create Prüfergebnisse für alle Items in allen Containern/Boxen
+            for container in auftrag.container.all():
+                for box in container.boxen.all():
+                    for item in box.items.all():
+                        position_status = Status.objects.get(name='Vollständig', typ='Position')
+                        PruefErgebnis.objects.get_or_create(
+                            pruefung=pruefung,
+                            item=item,
+                            defaults={
+                                'status': position_status,
+                                'bemerkung': 'Qualität geprüft und bestätigt',
+                            }
+                        )
 
         # Create Schwund entries
         schwund_status = Status.objects.get(name='Offen', typ='Auftrag')
@@ -214,4 +326,4 @@ class Command(BaseCommand):
                 }
             )
 
-        self.stdout.write(self.style.SUCCESS('  ✓ Aufträge, Items und Prüfungen erstellt'))
+        self.stdout.write(self.style.SUCCESS('  ✓ Aufträge, Container, Boxen, Items und Prüfungen erstellt'))

@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
-from auftraege.models import Items
+from auftraege.models import Item
 from core.models import Status
 
 
@@ -25,7 +25,7 @@ class PruefErgebnis(models.Model):
     """Inspektionsergebnisse für einzelne Items in einer Prüfung"""
     pruefergebnis_id = models.AutoField(primary_key=True)
     pruefung = models.ForeignKey(Pruefung, on_delete=models.CASCADE, related_name='ergebnisse')
-    item = models.ForeignKey(Items, on_delete=models.CASCADE)
+    item = models.ForeignKey(Item, on_delete=models.CASCADE)
     status = models.ForeignKey(Status, on_delete=models.SET_NULL, null=True, blank=True)
     bemerkung = models.TextField(blank=True)
 

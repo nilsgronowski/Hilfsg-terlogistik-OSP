@@ -1,5 +1,5 @@
 from django.contrib import admin
-from auftraege.models import Items
+from auftraege.models import Item
 from .models import Pruefung, PruefErgebnis, Schwund
 
 
@@ -16,9 +16,12 @@ class PruefErgebnisInline(admin.TabularInline):
         if db_field.name == 'item':
             pruefung = getattr(request, '_pruefung_obj', None)
             if pruefung and pruefung.auftrag_id:
-                kwargs['queryset'] = Items.objects.filter(auftrag=pruefung.auftrag)
+                # Hole alle Items aus allen Boxen/Containern dieses Auftrags
+                kwargs['queryset'] = Item.objects.filter(
+                    box__container__auftrag=pruefung.auftrag
+                )
             else:
-                kwargs['queryset'] = Items.objects.none()
+                kwargs['queryset'] = Item.objects.none()
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 
