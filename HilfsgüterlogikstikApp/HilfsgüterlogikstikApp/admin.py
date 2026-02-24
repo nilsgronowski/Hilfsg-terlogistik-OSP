@@ -2,6 +2,10 @@ from django.contrib import admin
 
 
 class CustomAdminSite(admin.AdminSite):
+	site_header = 'Hilfsgüter-Logistik Verwaltung'
+	site_title = 'Hilfsgüter-Logistik Admin'
+	index_title = 'Einsatzsteuerung & Ressourcenübersicht'
+
 	def get_app_list(self, request, app_label=None):
 		app_list = super().get_app_list(request, app_label)
 		for app in app_list:
