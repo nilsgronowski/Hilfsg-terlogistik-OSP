@@ -124,9 +124,9 @@ class Schwund(models.Model):
     )
 
     def __str__(self):
-        return f"Schwund-Report {self.schwund_id} - {self.auftragspruefung.auftrag.auftragnamen}"
+        return f"Schwund {self.schwund_id} - {self.auftragspruefung.auftrag.auftragnamen}"
 
     class Meta:
-        verbose_name = "Schwund-Report"
-        verbose_name_plural = "Schwund-Reports"
+        verbose_name = "Schwund"
+        verbose_name_plural = "Schwund"
         ordering = ['-datum']

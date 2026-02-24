@@ -45,8 +45,8 @@ class SchwundInline(admin.StackedInline):
     can_delete = False
     fields = ('klassifizierung', 'notiz', 'erstellt_von', 'status')
     readonly_fields = ('datum',)
-    verbose_name = 'Schwund-Report'
-    verbose_name_plural = 'Schwund-Report'
+    verbose_name = 'Schwund'
+    verbose_name_plural = 'Schwund'
 
 
 @admin.register(Auftragspruefung)
