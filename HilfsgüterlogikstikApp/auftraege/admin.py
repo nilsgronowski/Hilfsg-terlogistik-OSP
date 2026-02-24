@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django import forms
-from .models import Auftrag, Container, Box, Item, ItemBestand
+from .models import Auftrag, Container, Box, Item
 
 
 # Filter-Widget für bestehende Boxen im Container
@@ -60,22 +60,15 @@ class ContainerInline(admin.TabularInline):
     show_change_link = True
 
 
-# Inline für ungebundene Items in Auftrag
-class ItemBestandInline(admin.TabularInline):
-    model = ItemBestand
-    extra = 1
-    fields = ('bestand_id', 'item_name', 'gesamtmenge', 'beschreibung')
-    readonly_fields = ('bestand_id',)
-
-
 @admin.register(Auftrag)
 class AuftragAdmin(admin.ModelAdmin):
-    list_display = ('auftrag_id', 'auftragnamen', 'kategorie', 'verfallsdatum')
-    list_filter = ('kategorie', 'verfallsdatum')
+    list_display = ('auftrag_id', 'auftragnamen', 'kategorie', 'verfallsdatum', 'status')
+    list_filter = ('kategorie', 'verfallsdatum', 'status')
     search_fields = ('auftragnamen', 'kategorie')
     ordering = ('-verfallsdatum',)
-    fields = ('auftragnamen', 'kategorie', 'verfallsdatum')
-    inlines = [ContainerInline, ItemBestandInline]
+    fields = ('auftragnamen', 'kategorie', 'verfallsdatum', 'status')
+    readonly_fields = ('status',)
+    inlines = [ContainerInline]
 
 
 @admin.register(Container)
@@ -127,10 +120,4 @@ class ItemAdmin(admin.ModelAdmin):
     get_auftrag.admin_order_field = 'box__container__auftrag'
 
 
-@admin.register(ItemBestand)
-class ItemBestandAdmin(admin.ModelAdmin):
-    list_display = ('bestand_id', 'item_name', 'gesamtmenge', 'auftrag', 'beschreibung')
-    list_filter = ('auftrag',)
-    search_fields = ('item_name', 'auftrag__auftragnamen')
-    ordering = ('auftrag', 'item_name')
-    fields = ('auftrag', 'item_name', 'gesamtmenge', 'beschreibung')
+

@@ -2,9 +2,8 @@ from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User, Group
 from django.db import connection
 from datetime import datetime, timedelta
-from core.models import Status
-from auftraege.models import Auftrag, Container, Box, Item, ItemBestand
-from pruefung.models import Pruefung, PruefErgebnis, Schwund
+from auftraege.models import Auftrag, Container, Box, Item
+from pruefung.models import Auftragspruefung, Einzelpruefung, PruefErgebnis, Schwund
 
 
 class Command(BaseCommand):
@@ -18,9 +17,6 @@ class Command(BaseCommand):
 
         # Create Groups (Rollen)
         self.create_groups()
-
-        # Create Status
-        self.create_status()
 
         # Create Users
         self.create_users()
@@ -40,13 +36,12 @@ class Command(BaseCommand):
             # Delete all test data
             Schwund.objects.all().delete()
             PruefErgebnis.objects.all().delete()
-            Pruefung.objects.all().delete()
+            Einzelpruefung.objects.all().delete()
+            Auftragspruefung.objects.all().delete()
             Item.objects.all().delete()
-            ItemBestand.objects.all().delete()
             Box.objects.all().delete()
             Container.objects.all().delete()
             Auftrag.objects.all().delete()
-            Status.objects.all().delete()
             
             # Delete test users and groups
             User.objects.filter(username__startswith='test_').delete()
@@ -265,65 +260,53 @@ class Command(BaseCommand):
         Item.objects.create(box=box4_1_2, item_name='Seife', menge=200)
         Item.objects.create(box=box4_1_2, item_name='Zahnbürsten', menge=150)
 
-        # Create ItemBestand (ungebundene Items)
-        ItemBestand.objects.create(
-            auftrag=auftraege[1],
-            item_name='Einwegspritzen',
-            gesamtmenge=500,
-            beschreibung='Noch nicht in Boxen verpackt'
-        )
-        ItemBestand.objects.create(
-            auftrag=auftraege[2],
-            item_name='Energieriegel',
-            gesamtmenge=1000,
-            beschreibung='Im Lager vorrätig'
-        )
-        ItemBestand.objects.create(
-            auftrag=auftraege[3],
-            item_name='Socken',
-            gesamtmenge=300,
-            beschreibung='Noch zu verpacken'
-        )
-
-        # Create Prüfungen
-        pruefung_status = Status.objects.get(name='Bestanden', typ='Pruefung')
+        # Create Auftragsprüfungen
         pruefer = User.objects.get(username='test_pruefer')
 
         for auftrag_id, auftrag in auftraege.items():
-            pruefung, _ = Pruefung.objects.get_or_create(
+            # Erstelle Auftragsprüfung
+            auftragspruefung, _ = Auftragspruefung.objects.get_or_create(
                 auftrag=auftrag,
                 defaults={
                     'pruefer': pruefer,
-                    'gesamtstatus': pruefung_status,
+                    'gesamtstatus': Auftragspruefung.PruefungStatus.BESTANDEN,
                 }
             )
 
-            # Create Prüfergebnisse für alle Items in allen Containern/Boxen
+            # Erstelle Einzelprüfungen für jeden Container
             for container in auftrag.container.all():
+                einzelpruefung, _ = Einzelpruefung.objects.get_or_create(
+                    auftragspruefung=auftragspruefung,
+                    container=container,
+                    defaults={
+                        'pruefer': pruefer,
+                        'status': Einzelpruefung.EinzelpruefungStatus.VOLLSTAENDIG,
+                        'bemerkung': f'Prüfung von {container.container_name}',
+                    }
+                )
+
+                # Create Prüfergebnisse für alle Items in allen Boxen dieses Containers
                 for box in container.boxen.all():
                     for item in box.items.all():
-                        position_status = Status.objects.get(name='Vollständig', typ='Position')
                         PruefErgebnis.objects.get_or_create(
-                            pruefung=pruefung,
+                            einzelpruefung=einzelpruefung,
                             item=item,
                             defaults={
-                                'status': position_status,
+                                'status': PruefErgebnis.ErgebnisStatus.VOLLSTAENDIG,
                                 'bemerkung': 'Qualität geprüft und bestätigt',
                             }
                         )
 
-        # Create Schwund entries
-        schwund_status = Status.objects.get(name='Offen', typ='Auftrag')
-        if list(auftraege.values()):
-            schwund_auftrag = list(auftraege.values())[0]
-            Schwund.objects.get_or_create(
-                auftrag=schwund_auftrag,
-                defaults={
-                    'klassifizierung': 'Beschädigung',
-                    'notiz': 'Verpackung beschädigt während Transport',
-                    'pruefer': pruefer,
-                    'status': schwund_status,
-                }
-            )
+            # Create Schwund-Report für die erste Auftragsprüfung
+            if auftrag_id == 1:
+                Schwund.objects.get_or_create(
+                    auftragspruefung=auftragspruefung,
+                    defaults={
+                        'klassifizierung': 'Beschädigung',
+                        'notiz': 'Verpackung beschädigt während Transport',
+                        'erstellt_von': pruefer,
+                        'status': Schwund.SchwundStatus.GEMELDET,
+                    }
+                )
 
         self.stdout.write(self.style.SUCCESS('  ✓ Aufträge, Container, Boxen, Items und Prüfungen erstellt'))

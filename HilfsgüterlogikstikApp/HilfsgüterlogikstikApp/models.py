@@ -1,5 +1,4 @@
 # Models are now organized in separate apps:
-# - core: Status
-# - auftraege: Auftrag, Container, Box, Item, ItemBestand
-# - pruefung: Pruefung, PruefErgebnis, Schwund
+# - auftraege: Auftrag (mit Status), Container, Box, Item
+# - pruefung: Auftragspruefung, Einzelpruefung, PruefErgebnis, Schwund (alle mit integrierten Status-Feldern)
 

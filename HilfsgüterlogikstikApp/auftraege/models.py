@@ -3,13 +3,44 @@ from django.db import models
 
 class Auftrag(models.Model):
     """Aufträge für Hilfsgüter"""
+    
+    class AuftragStatus(models.TextChoices):
+        OFFEN = 'OFFEN', 'Offen'
+        IN_BEARBEITUNG = 'IN_BEARBEITUNG', 'In Bearbeitung'
+        IN_PRUEFUNG = 'IN_PRUEFUNG', 'In Prüfung'
+        GEPRUEFT = 'GEPRUEFT', 'Geprüft'
+        ABGESCHLOSSEN = 'ABGESCHLOSSEN', 'Abgeschlossen'
+        STORNIERT = 'STORNIERT', 'Storniert'
+    
     auftrag_id = models.AutoField(primary_key=True)
     auftragnamen = models.CharField(max_length=255)
     kategorie = models.CharField(max_length=255)
     verfallsdatum = models.DateField()
+    status = models.CharField(
+        max_length=20,
+        choices=AuftragStatus.choices,
+        default=AuftragStatus.OFFEN,
+        verbose_name='Status'
+    )
 
     def __str__(self):
         return self.auftragnamen
+    
+    def aktualisiere_status_von_pruefung(self):
+        """Aktualisiert den Status basierend auf der letzten Auftragsprüfung"""
+        letzte_pruefung = self.auftragspruefungen.order_by('-datum').first()
+        if letzte_pruefung:
+            status_mapping = {
+                'OFFEN': self.AuftragStatus.IN_PRUEFUNG,
+                'IN_PRUEFUNG': self.AuftragStatus.IN_PRUEFUNG,
+                'BESTANDEN': self.AuftragStatus.GEPRUEFT,
+                'NICHT_BESTANDEN': self.AuftragStatus.IN_BEARBEITUNG,
+            }
+            self.status = status_mapping.get(
+                letzte_pruefung.gesamtstatus,
+                self.AuftragStatus.IN_PRUEFUNG
+            )
+            self.save()
 
     class Meta:
         verbose_name = "Auftrag"
@@ -63,20 +94,3 @@ class Item(models.Model):
         verbose_name = "Item"
         verbose_name_plural = "Items"
         ordering = ['box', 'item_id']
-
-
-class ItemBestand(models.Model):
-    """Gesamtbestand von Items, die nicht in Boxen gebunden sind"""
-    bestand_id = models.AutoField(primary_key=True)
-    auftrag = models.ForeignKey(Auftrag, on_delete=models.CASCADE, related_name='item_bestand')
-    item_name = models.CharField(max_length=255)
-    gesamtmenge = models.IntegerField(default=0)
-    beschreibung = models.TextField(blank=True, null=True)
-
-    def __str__(self):
-        return f"{self.item_name} - Ungebunden: {self.gesamtmenge}"
-
-    class Meta:
-        verbose_name = "Item Bestand (ungebunden)"
-        verbose_name_plural = "Item Bestände (ungebunden)"
-        ordering = ['auftrag', 'item_name']

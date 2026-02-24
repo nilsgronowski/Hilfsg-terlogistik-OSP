@@ -11,7 +11,16 @@ class CustomAdminSite(admin.AdminSite):
 					'Container': 2,
 					'Box': 3,
 					'Item': 4,
-					'ItemBestand': 5,
+				}
+				app['models'].sort(
+					key=lambda model: order.get(model.get('object_name'), 999)
+				)
+			elif app.get('app_label') == 'pruefung':
+				order = {
+					'Auftragspruefung': 1,
+					'Einzelpruefung': 2,
+					'PruefErgebnis': 3,
+					'Schwund': 4,
 				}
 				app['models'].sort(
 					key=lambda model: order.get(model.get('object_name'), 999)
