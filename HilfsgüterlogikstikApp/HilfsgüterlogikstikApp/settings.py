@@ -164,13 +164,13 @@ SIMPLEUI_CONFIG = {
 
 # SimpleUI Icons for Models - using the proper SIMPLEUI_ICON format
 SIMPLEUI_ICON = {
-    'Aufträge': 'fas fa-file-invoice',
-    'Container': 'fas fa-box',
-    'Boxen': 'fas fa-boxes',
+    'Orders': 'fas fa-file-invoice',
+    'Containers': 'fas fa-box',
+    'Boxes': 'fas fa-boxes',
     'Items': 'fas fa-list',
-    'Auftragsprüfungen': 'fas fa-check-double',
-    'Einzelprüfungen': 'fas fa-magnifying-glass',
-    'Prüfergebnisse': 'fas fa-edit',
-    'Schwund': 'fas fa-exclamation-triangle',
-    'Status': 'fas fa-cog',
+    'Order Inspections': 'fas fa-check-double',
+    'Individual Inspections': 'fas fa-magnifying-glass',
+    'Inspection Results': 'fas fa-edit',
+    'Shrinkage': 'fas fa-exclamation-triangle',
+    'Statuses': 'fas fa-cog',
 }

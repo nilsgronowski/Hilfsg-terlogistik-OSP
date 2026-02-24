@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 
 
 class Rolle(models.Model):
-    """Rollen für Benutzer"""
+    """Roles for users"""
     rolle_id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=255)
 
@@ -11,13 +11,13 @@ class Rolle(models.Model):
         return self.name
 
     class Meta:
-        verbose_name = "Rolle"
-        verbose_name_plural = "Rollen"
+        verbose_name = "Role"
+        verbose_name_plural = "Roles"
         ordering = ['name']
 
 
 class Permission(models.Model):
-    """Berechtigungen im System"""
+    """Permissions in the system"""
     permission_id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=255)
 
@@ -31,7 +31,7 @@ class Permission(models.Model):
 
 
 class RolePermission(models.Model):
-    """Verknüpfung von Rollen und Berechtigungen"""
+    """Association of roles and permissions"""
     rolle = models.ForeignKey(Rolle, on_delete=models.CASCADE)
     permission = models.ForeignKey(Permission, on_delete=models.CASCADE)
 
@@ -45,7 +45,7 @@ class RolePermission(models.Model):
 
 
 class UserRolle(models.Model):
-    """Verknüpfung von Benutzern und Rollen"""
+    """Association of users and roles"""
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     rolle = models.ForeignKey(Rolle, on_delete=models.CASCADE)
 
@@ -53,6 +53,6 @@ class UserRolle(models.Model):
         return f"{self.user.username} - {self.rolle.name}"
 
     class Meta:
-        verbose_name = "UserRolle"
-        verbose_name_plural = "UserRollen"
+        verbose_name = "UserRole"
+        verbose_name_plural = "UserRoles"
         unique_together = ('user', 'rolle')

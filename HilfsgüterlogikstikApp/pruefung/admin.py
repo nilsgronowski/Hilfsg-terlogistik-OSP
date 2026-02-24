@@ -3,7 +3,7 @@ from auftraege.models import Item
 from .models import Auftragspruefung, Einzelpruefung, PruefErgebnis, Schwund
 
 
-# Inline für Prüfergebnisse in Einzelprüfung
+# Inline for inspection results in individual inspection
 class PruefErgebnisInline(admin.TabularInline):
     model = PruefErgebnis
     extra = 1
@@ -18,10 +18,10 @@ class PruefErgebnisInline(admin.TabularInline):
         if db_field.name == 'item':
             einzelpruefung = getattr(request, '_einzelpruefung_obj', None)
             if einzelpruefung and einzelpruefung.container:
-                # Hole alle Items aus allen Boxen dieses Containers
+                # Get all items from all boxes of this container
                 kwargs['queryset'] = Item.objects.filter(box__container=einzelpruefung.container)
             elif einzelpruefung and einzelpruefung.auftragspruefung:
-                # Fallback: Alle Items des Auftrags
+                # Fallback: All items of the order
                 kwargs['queryset'] = Item.objects.filter(
                     box__container__auftrag=einzelpruefung.auftragspruefung.auftrag
                 )
@@ -30,7 +30,7 @@ class PruefErgebnisInline(admin.TabularInline):
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 
-# Inline für Einzelprüfungen in Auftragsprüfung
+# Inline for individual inspections in order inspection
 class EinzelpruefungInline(admin.TabularInline):
     model = Einzelpruefung
     extra = 1
@@ -39,14 +39,14 @@ class EinzelpruefungInline(admin.TabularInline):
     show_change_link = True
 
 
-# Inline für Schwund in Auftragsprüfung (1:1)
+# Inline for shrinkage in order inspection (1:1)
 class SchwundInline(admin.StackedInline):
     model = Schwund
     can_delete = False
     fields = ('klassifizierung', 'notiz', 'erstellt_von', 'status')
     readonly_fields = ('datum',)
-    verbose_name = 'Schwund'
-    verbose_name_plural = 'Schwund'
+    verbose_name = 'Shrinkage'
+    verbose_name_plural = 'Shrinkage'
 
 
 @admin.register(Auftragspruefung)
@@ -91,5 +91,5 @@ class SchwundAdmin(admin.ModelAdmin):
 
     def get_auftrag(self, obj):
         return obj.auftragspruefung.auftrag.auftragnamen
-    get_auftrag.short_description = 'Auftrag'
+    get_auftrag.short_description = 'Order'
     get_auftrag.admin_order_field = 'auftragspruefung__auftrag'

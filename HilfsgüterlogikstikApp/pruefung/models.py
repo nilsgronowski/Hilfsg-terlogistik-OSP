@@ -4,14 +4,14 @@ from auftraege.models import Item, Container
 
 
 class Auftragspruefung(models.Model):
-    """Übergeordnete Prüfung für einen gesamten Auftrag"""
+    """Overall inspection for a complete order"""
     
     class PruefungStatus(models.TextChoices):
-        OFFEN = 'OFFEN', 'Offen'
-        IN_PRUEFUNG = 'IN_PRUEFUNG', 'In Prüfung'
-        BESTANDEN = 'BESTANDEN', 'Bestanden'
-        NICHT_BESTANDEN = 'NICHT_BESTANDEN', 'Nicht bestanden'
-        ABGEBROCHEN = 'ABGEBROCHEN', 'Abgebrochen'
+        OFFEN = 'OFFEN', 'Open'
+        IN_PRUEFUNG = 'IN_PRUEFUNG', 'In Inspection'
+        BESTANDEN = 'BESTANDEN', 'Passed'
+        NICHT_BESTANDEN = 'NICHT_BESTANDEN', 'Failed'
+        ABGEBROCHEN = 'ABGEBROCHEN', 'Aborted'
     
     auftragspruefung_id = models.AutoField(primary_key=True)
     auftrag = models.ForeignKey('auftraege.Auftrag', on_delete=models.CASCADE, related_name='auftragspruefungen')
@@ -21,36 +21,36 @@ class Auftragspruefung(models.Model):
         max_length=20,
         choices=PruefungStatus.choices,
         default=PruefungStatus.OFFEN,
-        verbose_name='Gesamtstatus'
+        verbose_name='Overall status'
     )
 
     def __str__(self):
-        return f"Auftragsprüfung {self.auftragspruefung_id} - {self.auftrag.auftragnamen}"
+        return f"Order inspection {self.auftragspruefung_id} - {self.auftrag.auftragnamen}"
     
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        # Aktualisiere Auftragsstatus nach dem Speichern
+        # Update order status after saving
         self.auftrag.aktualisiere_status_von_pruefung()
 
     class Meta:
-        verbose_name = "Auftragsprüfung"
-        verbose_name_plural = "Auftragsprüfungen"
+        verbose_name = "Order Inspection"
+        verbose_name_plural = "Order Inspections"
         ordering = ['-datum']
 
 
 class Einzelpruefung(models.Model):
-    """Einzelne Prüfung innerhalb einer Auftragsprüfung (z.B. für einen Container)"""
+    """Individual inspection within an order inspection (e.g. for a container)"""
     
     class EinzelpruefungStatus(models.TextChoices):
-        AUSSTEHEND = 'AUSSTEHEND', 'Ausstehend'
-        IN_PRUEFUNG = 'IN_PRUEFUNG', 'In Prüfung'
-        VOLLSTAENDIG = 'VOLLSTAENDIG', 'Vollständig'
-        MIT_MAENGELN = 'MIT_MAENGELN', 'Mit Mängeln'
-        UNVOLLSTAENDIG = 'UNVOLLSTAENDIG', 'Unvollständig'
+        AUSSTEHEND = 'AUSSTEHEND', 'Pending'
+        IN_PRUEFUNG = 'IN_PRUEFUNG', 'In Inspection'
+        VOLLSTAENDIG = 'VOLLSTAENDIG', 'Complete'
+        MIT_MAENGELN = 'MIT_MAENGELN', 'With Defects'
+        UNVOLLSTAENDIG = 'UNVOLLSTAENDIG', 'Incomplete'
     
     einzelpruefung_id = models.AutoField(primary_key=True)
     auftragspruefung = models.ForeignKey(Auftragspruefung, on_delete=models.CASCADE, related_name='einzelpruefungen')
-    container = models.ForeignKey(Container, on_delete=models.CASCADE, null=True, blank=True, help_text='Container, der geprüft wird')
+    container = models.ForeignKey(Container, on_delete=models.CASCADE, null=True, blank=True, help_text='Container being inspected')
     pruefer = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     datum = models.DateTimeField(auto_now_add=True)
     status = models.CharField(
@@ -63,23 +63,23 @@ class Einzelpruefung(models.Model):
 
     def __str__(self):
         container_info = f" - {self.container.container_name}" if self.container else ""
-        return f"Einzelprüfung {self.einzelpruefung_id}{container_info}"
+        return f"Individual inspection {self.einzelpruefung_id}{container_info}"
 
     class Meta:
-        verbose_name = "Einzelprüfung"
-        verbose_name_plural = "Einzelprüfungen"
+        verbose_name = "Individual Inspection"
+        verbose_name_plural = "Individual Inspections"
         ordering = ['auftragspruefung', 'datum']
 
 
 class PruefErgebnis(models.Model):
-    """Inspektionsergebnisse für einzelne Items in einer Einzelprüfung"""
+    """Inspection results for individual items in an individual inspection"""
     
     class ErgebnisStatus(models.TextChoices):
-        VOLLSTAENDIG = 'VOLLSTAENDIG', 'Vollständig'
-        UNVOLLSTAENDIG = 'UNVOLLSTAENDIG', 'Unvollständig'
-        BESCHAEDIGT = 'BESCHAEDIGT', 'Beschädigt'
-        FEHLT = 'FEHLT', 'Fehlt'
-        MANGELHAFT = 'MANGELHAFT', 'Mangelhaft'
+        VOLLSTAENDIG = 'VOLLSTAENDIG', 'Complete'
+        UNVOLLSTAENDIG = 'UNVOLLSTAENDIG', 'Incomplete'
+        BESCHAEDIGT = 'BESCHAEDIGT', 'Damaged'
+        FEHLT = 'FEHLT', 'Missing'
+        MANGELHAFT = 'MANGELHAFT', 'Defective'
     
     pruefergebnis_id = models.AutoField(primary_key=True)
     einzelpruefung = models.ForeignKey(Einzelpruefung, on_delete=models.CASCADE, related_name='ergebnisse')
@@ -93,22 +93,22 @@ class PruefErgebnis(models.Model):
     bemerkung = models.TextField(blank=True)
 
     def __str__(self):
-        return f"Prüfergebnis {self.pruefergebnis_id} - {self.item.item_name}"
+        return f"Inspection result {self.pruefergebnis_id} - {self.item.item_name}"
 
     class Meta:
-        verbose_name = "Prüfergebnis"
-        verbose_name_plural = "Prüfergebnisse"
+        verbose_name = "Inspection Result"
+        verbose_name_plural = "Inspection Results"
         ordering = ['einzelpruefung', 'pruefergebnis_id']
 
 
 class Schwund(models.Model):
-    """Schwund-Report für eine Auftragsprüfung"""
+    """Shrinkage report for an order inspection"""
     
     class SchwundStatus(models.TextChoices):
-        GEMELDET = 'GEMELDET', 'Gemeldet'
-        IN_BEARBEITUNG = 'IN_BEARBEITUNG', 'In Bearbeitung'
-        GEKLAERT = 'GEKLAERT', 'Geklärt'
-        ABGESCHLOSSEN = 'ABGESCHLOSSEN', 'Abgeschlossen'
+        GEMELDET = 'GEMELDET', 'Reported'
+        IN_BEARBEITUNG = 'IN_BEARBEITUNG', 'In Progress'
+        GEKLAERT = 'GEKLAERT', 'Resolved'
+        ABGESCHLOSSEN = 'ABGESCHLOSSEN', 'Completed'
     
     schwund_id = models.AutoField(primary_key=True)
     auftragspruefung = models.OneToOneField(Auftragspruefung, on_delete=models.CASCADE, related_name='schwund_report')
@@ -124,9 +124,9 @@ class Schwund(models.Model):
     )
 
     def __str__(self):
-        return f"Schwund {self.schwund_id} - {self.auftragspruefung.auftrag.auftragnamen}"
+        return f"Shrinkage {self.schwund_id} - {self.auftragspruefung.auftrag.auftragnamen}"
 
     class Meta:
-        verbose_name = "Schwund"
-        verbose_name_plural = "Schwund"
+        verbose_name = "Shrinkage"
+        verbose_name_plural = "Shrinkage"
         ordering = ['-datum']

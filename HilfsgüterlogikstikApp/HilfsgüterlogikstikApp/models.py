@@ -1,4 +1,4 @@
 # Models are now organized in separate apps:
-# - auftraege: Auftrag (mit Status), Container, Box, Item
-# - pruefung: Auftragspruefung, Einzelpruefung, PruefErgebnis, Schwund (alle mit integrierten Status-Feldern)
+# - auftraege: Auftrag (with status), Container, Box, Item
+# - pruefung: Auftragspruefung, Einzelpruefung, PruefErgebnis, Schwund (all with integrated status fields)
 

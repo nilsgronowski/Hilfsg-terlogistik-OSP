@@ -2,12 +2,23 @@ from django.contrib import admin
 
 
 class CustomAdminSite(admin.AdminSite):
-	site_header = 'Hilfsgüter-Logistik Verwaltung'
-	site_title = 'Hilfsgüter-Logistik Admin'
-	index_title = 'Einsatzsteuerung & Ressourcenübersicht'
+	site_header = 'Relief Supplies Logistics Management'
+	site_title = 'Relief Supplies Logistics Admin'
+	index_title = 'Operations Control & Resource Overview'
 
 	def get_app_list(self, request, app_label=None):
 		app_list = super().get_app_list(request, app_label)
+		
+		# Define app order
+		app_order = {
+			'auftraege': 1,
+			'pruefung': 2,
+			'auth': 3,
+		}
+		
+		# Sort apps by defined order
+		app_list.sort(key=lambda app: app_order.get(app.get('app_label'), 999))
+		
 		for app in app_list:
 			if app.get('app_label') == 'auftraege':
 				order = {

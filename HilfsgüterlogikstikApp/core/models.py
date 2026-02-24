@@ -2,14 +2,14 @@ from django.db import models
 
 
 class Status(models.Model):
-    """Status für Aufträge, Prüfungen und Positionen"""
+    """Status for orders, inspections and positions"""
     status_id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=255)
     typ = models.CharField(
         max_length=50,
         choices=[
-            ('Auftrag', 'Auftrag'),
-            ('Pruefung', 'Prüfung'),
+            ('Order', 'Order'),
+            ('Inspection', 'Inspection'),
             ('Position', 'Position'),
         ]
     )
@@ -19,5 +19,5 @@ class Status(models.Model):
 
     class Meta:
         verbose_name = "Status"
-        verbose_name_plural = "Status"
+        verbose_name_plural = "Statuses"
         ordering = ['typ', 'name']

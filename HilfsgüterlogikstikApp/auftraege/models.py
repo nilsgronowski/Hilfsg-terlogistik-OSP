@@ -2,15 +2,15 @@ from django.db import models
 
 
 class Auftrag(models.Model):
-    """Aufträge für Hilfsgüter"""
+    """Orders for relief supplies"""
     
     class AuftragStatus(models.TextChoices):
-        OFFEN = 'OFFEN', 'Offen'
-        IN_BEARBEITUNG = 'IN_BEARBEITUNG', 'In Bearbeitung'
-        IN_PRUEFUNG = 'IN_PRUEFUNG', 'In Prüfung'
-        GEPRUEFT = 'GEPRUEFT', 'Geprüft'
-        ABGESCHLOSSEN = 'ABGESCHLOSSEN', 'Abgeschlossen'
-        STORNIERT = 'STORNIERT', 'Storniert'
+        OFFEN = 'OFFEN', 'Open'
+        IN_BEARBEITUNG = 'IN_BEARBEITUNG', 'In Progress'
+        IN_PRUEFUNG = 'IN_PRUEFUNG', 'In Inspection'
+        GEPRUEFT = 'GEPRUEFT', 'Inspected'
+        ABGESCHLOSSEN = 'ABGESCHLOSSEN', 'Completed'
+        STORNIERT = 'STORNIERT', 'Cancelled'
     
     auftrag_id = models.AutoField(primary_key=True)
     auftragnamen = models.CharField(max_length=255)
@@ -27,7 +27,7 @@ class Auftrag(models.Model):
         return self.auftragnamen
     
     def aktualisiere_status_von_pruefung(self):
-        """Aktualisiert den Status basierend auf der letzten Auftragsprüfung"""
+        """Updates the status based on the last order inspection"""
         letzte_pruefung = self.auftragspruefungen.order_by('-datum').first()
         if letzte_pruefung:
             status_mapping = {
@@ -43,13 +43,13 @@ class Auftrag(models.Model):
             self.save()
 
     class Meta:
-        verbose_name = "Auftrag"
-        verbose_name_plural = "Aufträge"
+        verbose_name = "Order"
+        verbose_name_plural = "Orders"
         ordering = ['-verfallsdatum']
 
 
 class Container(models.Model):
-    """Container gehören zu einem Auftrag"""
+    """Containers belong to an order"""
     container_id = models.AutoField(primary_key=True)
     auftrag = models.ForeignKey(Auftrag, on_delete=models.CASCADE, related_name='container')
     container_name = models.CharField(max_length=255)
@@ -60,12 +60,12 @@ class Container(models.Model):
 
     class Meta:
         verbose_name = "Container"
-        verbose_name_plural = "Container"
+        verbose_name_plural = "Containers"
         ordering = ['auftrag', 'container_id']
 
 
 class Box(models.Model):
-    """Boxen gehören zu einem Container"""
+    """Boxes belong to a container"""
     box_id = models.AutoField(primary_key=True)
     container = models.ForeignKey(Container, on_delete=models.CASCADE, related_name='boxen')
     box_name = models.CharField(max_length=255)
@@ -76,12 +76,12 @@ class Box(models.Model):
 
     class Meta:
         verbose_name = "Box"
-        verbose_name_plural = "Boxen"
+        verbose_name_plural = "Boxes"
         ordering = ['container', 'box_id']
 
 
 class Item(models.Model):
-    """Items/Positionen in Boxen"""
+    """Items/Positions in boxes"""
     item_id = models.AutoField(primary_key=True)
     box = models.ForeignKey(Box, on_delete=models.CASCADE, related_name='items')
     item_name = models.CharField(max_length=255)

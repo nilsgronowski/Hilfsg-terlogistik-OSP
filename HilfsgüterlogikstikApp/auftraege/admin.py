@@ -3,14 +3,14 @@ from django import forms
 from .models import Auftrag, Container, Box, Item
 
 
-# Filter-Widget für bestehende Boxen im Container
+# Filter widget for existing boxes in container
 class ContainerForm(forms.ModelForm):
     boxen = forms.ModelMultipleChoiceField(
         queryset=Box.objects.all(),
         required=False,
-        widget=admin.widgets.FilteredSelectMultiple('Boxen', False),
-        label='Bestehende Boxen zuweisen',
-        help_text='Wähle bereits existierende Boxen aus'
+        widget=admin.widgets.FilteredSelectMultiple('Boxes', False),
+        label='Assign existing boxes',
+        help_text='Select already existing boxes'
     )
 
     class Meta:
@@ -27,12 +27,12 @@ class ContainerForm(forms.ModelForm):
         if commit:
             container.save()
         if container.pk:
-            # Aktualisiere die Boxen-Zuordnung
+            # Update box assignment
             container.boxen.set(self.cleaned_data['boxen'])
         return container
 
 
-# Inline für Items in Box
+# Inline for Items in Box
 class ItemInline(admin.TabularInline):
     model = Item
     extra = 1
@@ -40,18 +40,18 @@ class ItemInline(admin.TabularInline):
     readonly_fields = ('item_id',)
 
 
-# Inline für Boxen in Container (zum Neu-Erstellen)
+# Inline for Boxes in Container (for new creation)
 class BoxInline(admin.TabularInline):
     model = Box
     extra = 1
     fields = ('box_id', 'box_name', 'beschreibung')
     readonly_fields = ('box_id',)
     show_change_link = True
-    verbose_name = 'Neue Box erstellen'
-    verbose_name_plural = 'Neue Boxen erstellen'
+    verbose_name = 'Create new box'
+    verbose_name_plural = 'Create new boxes'
 
 
-# Inline für Container in Auftrag
+# Inline for Container in Order
 class ContainerInline(admin.TabularInline):
     model = Container
     extra = 1
@@ -83,7 +83,7 @@ class ContainerAdmin(admin.ModelAdmin):
 
     def get_boxen_count(self, obj):
         return obj.boxen.count()
-    get_boxen_count.short_description = 'Anzahl Boxen'
+    get_boxen_count.short_description = 'Number of boxes'
 
 
 @admin.register(Box)
@@ -97,7 +97,7 @@ class BoxAdmin(admin.ModelAdmin):
 
     def get_auftrag(self, obj):
         return obj.container.auftrag.auftragnamen
-    get_auftrag.short_description = 'Auftrag'
+    get_auftrag.short_description = 'Order'
     get_auftrag.admin_order_field = 'container__auftrag'
 
 
@@ -116,7 +116,7 @@ class ItemAdmin(admin.ModelAdmin):
 
     def get_auftrag(self, obj):
         return obj.box.container.auftrag.auftragnamen
-    get_auftrag.short_description = 'Auftrag'
+    get_auftrag.short_description = 'Order'
     get_auftrag.admin_order_field = 'box__container__auftrag'
 
 

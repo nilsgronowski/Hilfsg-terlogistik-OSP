@@ -10,21 +10,21 @@ class Command(BaseCommand):
     help = 'Populates the database with test data'
 
     def handle(self, *args, **options):
-        self.stdout.write(self.style.SUCCESS('🚀 Starte Testdaten-Population...'))
+        self.stdout.write(self.style.SUCCESS('🚀 Starting test data population...'))
 
         # Clear existing data
         self.clear_data()
 
-        # Create Groups (Rollen)
+        # Create Groups (Roles)
         self.create_groups()
 
         # Create Users
         self.create_users()
 
-        # Create Aufträge
+        # Create Orders
         self.create_auftraege()
 
-        self.stdout.write(self.style.SUCCESS('✅ Testdaten erfolgreich erstellt!'))
+        self.stdout.write(self.style.SUCCESS('✅ Test data successfully created!'))
 
     def clear_data(self):
         """Delete existing test data with FK constraint handling"""
@@ -52,45 +52,45 @@ class Command(BaseCommand):
                 cursor.execute('SET FOREIGN_KEY_CHECKS=1')
 
     def create_groups(self):
-        """Create user groups (Rollen)"""
+        """Create user groups (Roles)"""
         groups = [
             'Administrator',
-            'Prüfer',
-            'Logistiker',
+            'Inspector',
+            'Logistician',
             'Viewer',
         ]
         for group_name in groups:
             Group.objects.get_or_create(name=group_name)
-        self.stdout.write(self.style.SUCCESS('  ✓ Gruppen erstellt'))
+        self.stdout.write(self.style.SUCCESS('  ✓ Groups created'))
 
     def create_status(self):
         """Create status entries"""
         statuses = [
-            # Auftrag Status
-            {'name': 'Offen', 'typ': 'Auftrag'},
-            {'name': 'In Bearbeitung', 'typ': 'Auftrag'},
-            {'name': 'Abgeschlossen', 'typ': 'Auftrag'},
-            {'name': 'Storniert', 'typ': 'Auftrag'},
-            # Prüfung Status
-            {'name': 'Ausstehend', 'typ': 'Pruefung'},
-            {'name': 'In Prüfung', 'typ': 'Pruefung'},
-            {'name': 'Bestanden', 'typ': 'Pruefung'},
-            {'name': 'Nicht bestanden', 'typ': 'Pruefung'},
+            # Order Status
+            {'name': 'Open', 'typ': 'Order'},
+            {'name': 'In Progress', 'typ': 'Order'},
+            {'name': 'Completed', 'typ': 'Order'},
+            {'name': 'Cancelled', 'typ': 'Order'},
+            # Inspection Status
+            {'name': 'Pending', 'typ': 'Inspection'},
+            {'name': 'In Inspection', 'typ': 'Inspection'},
+            {'name': 'Passed', 'typ': 'Inspection'},
+            {'name': 'Failed', 'typ': 'Inspection'},
             # Position Status
-            {'name': 'Vollständig', 'typ': 'Position'},
-            {'name': 'Unvollständig', 'typ': 'Position'},
-            {'name': 'Beschädigt', 'typ': 'Position'},
+            {'name': 'Complete', 'typ': 'Position'},
+            {'name': 'Incomplete', 'typ': 'Position'},
+            {'name': 'Damaged', 'typ': 'Position'},
         ]
         for status_data in statuses:
             Status.objects.get_or_create(**status_data)
-        self.stdout.write(self.style.SUCCESS('  ✓ Status erstellt'))
+        self.stdout.write(self.style.SUCCESS('  ✓ Statuses created'))
 
     def create_users(self):
         """Create test users"""
         users_data = [
             {'username': 'test_admin', 'email': 'admin@test.local', 'password': 'testpass123', 'is_staff': True},
-            {'username': 'test_pruefer', 'email': 'pruefer@test.local', 'password': 'testpass123'},
-            {'username': 'test_logistiker', 'email': 'logistiker@test.local', 'password': 'testpass123'},
+            {'username': 'test_inspector', 'email': 'inspector@test.local', 'password': 'testpass123'},
+            {'username': 'test_logistician', 'email': 'logistician@test.local', 'password': 'testpass123'},
             {'username': 'test_viewer', 'email': 'viewer@test.local', 'password': 'testpass123'},
         ]
 
@@ -110,41 +110,41 @@ class Command(BaseCommand):
 
         # Assign users to groups
         admin_group = Group.objects.get(name='Administrator')
-        pruefer_group = Group.objects.get(name='Prüfer')
-        logistiker_group = Group.objects.get(name='Logistiker')
+        inspector_group = Group.objects.get(name='Inspector')
+        logistician_group = Group.objects.get(name='Logistician')
         viewer_group = Group.objects.get(name='Viewer')
 
         users['test_admin'].groups.add(admin_group)
-        users['test_pruefer'].groups.add(pruefer_group)
-        users['test_logistiker'].groups.add(logistiker_group)
+        users['test_inspector'].groups.add(inspector_group)
+        users['test_logistician'].groups.add(logistician_group)
         users['test_viewer'].groups.add(viewer_group)
 
-        self.stdout.write(self.style.SUCCESS('  ✓ Benutzer erstellt'))
+        self.stdout.write(self.style.SUCCESS('  ✓ Users created'))
 
     def create_auftraege(self):
-        """Create test Aufträge with hierarchical structure"""
+        """Create test orders with hierarchical structure"""
         today = datetime.now().date()
 
-        # Create Aufträge
+        # Create Orders
         auftraege_data = [
             {
-                'auftragnamen': 'Nothilfe-Paket 1',
-                'kategorie': 'Medizinische Ausrüstung',
+                'auftragnamen': 'Emergency Package 1',
+                'kategorie': 'Medical Equipment',
                 'verfallsdatum': today + timedelta(days=30),
             },
             {
-                'auftragnamen': 'Nothilfe-Paket 2',
-                'kategorie': 'Lebensmittel',
+                'auftragnamen': 'Emergency Package 2',
+                'kategorie': 'Food',
                 'verfallsdatum': today + timedelta(days=60),
             },
             {
-                'auftragnamen': 'Winterbedarf',
-                'kategorie': 'Decken & Kleidung',
+                'auftragnamen': 'Winter Supplies',
+                'kategorie': 'Blankets & Clothing',
                 'verfallsdatum': today + timedelta(days=90),
             },
             {
-                'auftragnamen': 'Wasser & Hygiene',
-                'kategorie': 'Verbrauchsmaterialien',
+                'auftragnamen': 'Water & Hygiene',
+                'kategorie': 'Consumables',
                 'verfallsdatum': today + timedelta(days=45),
             },
         ]
@@ -154,138 +154,138 @@ class Command(BaseCommand):
             auftrag, _ = Auftrag.objects.get_or_create(**auftrag_data)
             auftraege[auftrag.auftrag_id] = auftrag
 
-        # Create Container für Auftrag 1 (Medizinische Ausrüstung)
+        # Create Container for Order 1 (Medical Equipment)
         container1_1 = Container.objects.create(
             auftrag=auftraege[1],
             container_name='Container A1',
-            beschreibung='Medizinische Verbrauchsmaterialien'
+            beschreibung='Medical consumables'
         )
         container1_2 = Container.objects.create(
             auftrag=auftraege[1],
             container_name='Container A2',
-            beschreibung='Instrumente und Geräte'
+            beschreibung='Instruments and devices'
         )
 
-        # Create Boxen für Container 1-1
+        # Create Boxes for Container 1-1
         box1_1_1 = Box.objects.create(
             container=container1_1,
             box_name='Box 1',
-            beschreibung='Verbandmaterial'
+            beschreibung='Dressing material'
         )
         box1_1_2 = Box.objects.create(
             container=container1_1,
             box_name='Box 2',
-            beschreibung='Desinfektionsmittel'
+            beschreibung='Disinfectants'
         )
 
-        # Create Items für Boxen im Container 1-1
-        Item.objects.create(box=box1_1_1, item_name='Verbandmaterial', menge=100)
-        Item.objects.create(box=box1_1_1, item_name='Pflaster', menge=500)
-        Item.objects.create(box=box1_1_2, item_name='Desinfektionsmittel', menge=50)
-        Item.objects.create(box=box1_1_2, item_name='Handschuhe', menge=200)
+        # Create Items for Boxes in Container 1-1
+        Item.objects.create(box=box1_1_1, item_name='Dressing material', menge=100)
+        Item.objects.create(box=box1_1_1, item_name='Bandages', menge=500)
+        Item.objects.create(box=box1_1_2, item_name='Disinfectant', menge=50)
+        Item.objects.create(box=box1_1_2, item_name='Gloves', menge=200)
 
-        # Create Boxen für Container 1-2
+        # Create Boxes for Container 1-2
         box1_2_1 = Box.objects.create(
             container=container1_2,
             box_name='Box 1',
-            beschreibung='Thermometer und Stethoskope'
+            beschreibung='Thermometers and stethoscopes'
         )
         Item.objects.create(box=box1_2_1, item_name='Thermometer', menge=30)
-        Item.objects.create(box=box1_2_1, item_name='Stethoskop', menge=15)
+        Item.objects.create(box=box1_2_1, item_name='Stethoscope', menge=15)
 
-        # Create Container für Auftrag 2 (Lebensmittel)
+        # Create Container for Order 2 (Food)
         container2_1 = Container.objects.create(
             auftrag=auftraege[2],
             container_name='Container B1',
-            beschreibung='Konserven und Haltbarware'
+            beschreibung='Canned and shelf-stable goods'
         )
 
         box2_1_1 = Box.objects.create(
             container=container2_1,
             box_name='Box 1',
-            beschreibung='Konservendosen'
+            beschreibung='Canned food'
         )
         box2_1_2 = Box.objects.create(
             container=container2_1,
             box_name='Box 2',
-            beschreibung='Trockenware'
+            beschreibung='Dry goods'
         )
 
-        Item.objects.create(box=box2_1_1, item_name='Konservenware', menge=500)
-        Item.objects.create(box=box2_1_1, item_name='Gemüsekonserven', menge=300)
-        Item.objects.create(box=box2_1_2, item_name='Reis', menge=100)
-        Item.objects.create(box=box2_1_2, item_name='Nudeln', menge=150)
+        Item.objects.create(box=box2_1_1, item_name='Canned goods', menge=500)
+        Item.objects.create(box=box2_1_1, item_name='Canned vegetables', menge=300)
+        Item.objects.create(box=box2_1_2, item_name='Rice', menge=100)
+        Item.objects.create(box=box2_1_2, item_name='Pasta', menge=150)
 
-        # Create Container für Auftrag 3 (Winterbedarf)
+        # Create Container for Order 3 (Winter Supplies)
         container3_1 = Container.objects.create(
             auftrag=auftraege[3],
             container_name='Container C1',
-            beschreibung='Textilien'
+            beschreibung='Textiles'
         )
 
         box3_1_1 = Box.objects.create(
             container=container3_1,
             box_name='Box 1',
-            beschreibung='Decken'
+            beschreibung='Blankets'
         )
         box3_1_2 = Box.objects.create(
             container=container3_1,
             box_name='Box 2',
-            beschreibung='Winterkleidung'
+            beschreibung='Winter clothing'
         )
 
-        Item.objects.create(box=box3_1_1, item_name='Wolldecken', menge=200)
-        Item.objects.create(box=box3_1_2, item_name='Winterjacken', menge=80)
-        Item.objects.create(box=box3_1_2, item_name='Handschuhe (Winter)', menge=120)
+        Item.objects.create(box=box3_1_1, item_name='Wool blankets', menge=200)
+        Item.objects.create(box=box3_1_2, item_name='Winter jackets', menge=80)
+        Item.objects.create(box=box3_1_2, item_name='Gloves (winter)', menge=120)
 
-        # Create Container für Auftrag 4 (Wasser & Hygiene)
+        # Create Container for Order 4 (Water & Hygiene)
         container4_1 = Container.objects.create(
             auftrag=auftraege[4],
             container_name='Container D1',
-            beschreibung='Wasserbehälter'
+            beschreibung='Water containers'
         )
 
         box4_1_1 = Box.objects.create(
             container=container4_1,
             box_name='Box 1',
-            beschreibung='Trinkwasser'
+            beschreibung='Drinking water'
         )
         box4_1_2 = Box.objects.create(
             container=container4_1,
             box_name='Box 2',
-            beschreibung='Hygieneartikel'
+            beschreibung='Hygiene articles'
         )
 
-        Item.objects.create(box=box4_1_1, item_name='Trinkwasser', menge=75)
-        Item.objects.create(box=box4_1_2, item_name='Seife', menge=200)
-        Item.objects.create(box=box4_1_2, item_name='Zahnbürsten', menge=150)
+        Item.objects.create(box=box4_1_1, item_name='Drinking water', menge=75)
+        Item.objects.create(box=box4_1_2, item_name='Soap', menge=200)
+        Item.objects.create(box=box4_1_2, item_name='Toothbrushes', menge=150)
 
-        # Create Auftragsprüfungen
-        pruefer = User.objects.get(username='test_pruefer')
+        # Create Order Inspections
+        inspector = User.objects.get(username='test_inspector')
 
         for auftrag_id, auftrag in auftraege.items():
-            # Erstelle Auftragsprüfung
+            # Create Order Inspection
             auftragspruefung, _ = Auftragspruefung.objects.get_or_create(
                 auftrag=auftrag,
                 defaults={
-                    'pruefer': pruefer,
+                    'pruefer': inspector,
                     'gesamtstatus': Auftragspruefung.PruefungStatus.BESTANDEN,
                 }
             )
 
-            # Erstelle Einzelprüfungen für jeden Container
+            # Create Individual Inspections for each Container
             for container in auftrag.container.all():
                 einzelpruefung, _ = Einzelpruefung.objects.get_or_create(
                     auftragspruefung=auftragspruefung,
                     container=container,
                     defaults={
-                        'pruefer': pruefer,
+                        'pruefer': inspector,
                         'status': Einzelpruefung.EinzelpruefungStatus.VOLLSTAENDIG,
-                        'bemerkung': f'Prüfung von {container.container_name}',
+                        'bemerkung': f'Inspection of {container.container_name}',
                     }
                 )
 
-                # Create Prüfergebnisse für alle Items in allen Boxen dieses Containers
+                # Create Inspection Results for all Items in all Boxes of this Container
                 for box in container.boxen.all():
                     for item in box.items.all():
                         PruefErgebnis.objects.get_or_create(
@@ -293,20 +293,20 @@ class Command(BaseCommand):
                             item=item,
                             defaults={
                                 'status': PruefErgebnis.ErgebnisStatus.VOLLSTAENDIG,
-                                'bemerkung': 'Qualität geprüft und bestätigt',
+                                'bemerkung': 'Quality checked and confirmed',
                             }
                         )
 
-            # Create Schwund-Report für die erste Auftragsprüfung
+            # Create Shrinkage Report for the first Order Inspection
             if auftrag_id == 1:
                 Schwund.objects.get_or_create(
                     auftragspruefung=auftragspruefung,
                     defaults={
-                        'klassifizierung': 'Beschädigung',
-                        'notiz': 'Verpackung beschädigt während Transport',
-                        'erstellt_von': pruefer,
+                        'klassifizierung': 'Damage',
+                        'notiz': 'Packaging damaged during transport',
+                        'erstellt_von': inspector,
                         'status': Schwund.SchwundStatus.GEMELDET,
                     }
                 )
 
-        self.stdout.write(self.style.SUCCESS('  ✓ Aufträge, Container, Boxen, Items und Prüfungen erstellt'))
+        self.stdout.write(self.style.SUCCESS('  ✓ Orders, Containers, Boxes, Items and Inspections created'))
