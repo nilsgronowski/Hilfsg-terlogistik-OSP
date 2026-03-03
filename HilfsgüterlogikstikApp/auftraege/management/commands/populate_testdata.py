@@ -2,8 +2,8 @@ from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User, Group
 from django.db import connection
 from datetime import datetime, timedelta
-from auftraege.models import Auftrag, Container, Box, Item
-from pruefung.models import Auftragspruefung, Einzelpruefung, PruefErgebnis, Schwund
+from auftraege.models import Order, Container, Box, Item
+from pruefung.models import OrderInspection, IndividualInspection, InspectionResult, Shrinkage
 
 
 class Command(BaseCommand):
@@ -22,7 +22,7 @@ class Command(BaseCommand):
         self.create_users()
 
         # Create Orders
-        self.create_auftraege()
+        self.create_orders()
 
         self.stdout.write(self.style.SUCCESS('✅ Test data successfully created!'))
 
@@ -34,14 +34,14 @@ class Command(BaseCommand):
         
         try:
             # Delete all test data
-            Schwund.objects.all().delete()
-            PruefErgebnis.objects.all().delete()
-            Einzelpruefung.objects.all().delete()
-            Auftragspruefung.objects.all().delete()
+            Shrinkage.objects.all().delete()
+            InspectionResult.objects.all().delete()
+            IndividualInspection.objects.all().delete()
+            OrderInspection.objects.all().delete()
             Item.objects.all().delete()
             Box.objects.all().delete()
             Container.objects.all().delete()
-            Auftrag.objects.all().delete()
+            Order.objects.all().delete()
             
             # Delete test users and groups
             User.objects.filter(username__startswith='test_').delete()
@@ -62,28 +62,6 @@ class Command(BaseCommand):
         for group_name in groups:
             Group.objects.get_or_create(name=group_name)
         self.stdout.write(self.style.SUCCESS('  ✓ Groups created'))
-
-    def create_status(self):
-        """Create status entries"""
-        statuses = [
-            # Order Status
-            {'name': 'Open', 'typ': 'Order'},
-            {'name': 'In Progress', 'typ': 'Order'},
-            {'name': 'Completed', 'typ': 'Order'},
-            {'name': 'Cancelled', 'typ': 'Order'},
-            # Inspection Status
-            {'name': 'Pending', 'typ': 'Inspection'},
-            {'name': 'In Inspection', 'typ': 'Inspection'},
-            {'name': 'Passed', 'typ': 'Inspection'},
-            {'name': 'Failed', 'typ': 'Inspection'},
-            # Position Status
-            {'name': 'Complete', 'typ': 'Position'},
-            {'name': 'Incomplete', 'typ': 'Position'},
-            {'name': 'Damaged', 'typ': 'Position'},
-        ]
-        for status_data in statuses:
-            Status.objects.get_or_create(**status_data)
-        self.stdout.write(self.style.SUCCESS('  ✓ Statuses created'))
 
     def create_users(self):
         """Create test users"""
@@ -121,191 +99,191 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS('  ✓ Users created'))
 
-    def create_auftraege(self):
+    def create_orders(self):
         """Create test orders with hierarchical structure"""
         today = datetime.now().date()
 
         # Create Orders
-        auftraege_data = [
+        orders_data = [
             {
-                'auftragnamen': 'Emergency Package 1',
-                'kategorie': 'Medical Equipment',
-                'verfallsdatum': today + timedelta(days=30),
+                'name': 'Emergency Package 1',
+                'category': 'Medical Equipment',
+                'expiry_date': today + timedelta(days=30),
             },
             {
-                'auftragnamen': 'Emergency Package 2',
-                'kategorie': 'Food',
-                'verfallsdatum': today + timedelta(days=60),
+                'name': 'Emergency Package 2',
+                'category': 'Food',
+                'expiry_date': today + timedelta(days=60),
             },
             {
-                'auftragnamen': 'Winter Supplies',
-                'kategorie': 'Blankets & Clothing',
-                'verfallsdatum': today + timedelta(days=90),
+                'name': 'Winter Supplies',
+                'category': 'Blankets & Clothing',
+                'expiry_date': today + timedelta(days=90),
             },
             {
-                'auftragnamen': 'Water & Hygiene',
-                'kategorie': 'Consumables',
-                'verfallsdatum': today + timedelta(days=45),
+                'name': 'Water & Hygiene',
+                'category': 'Consumables',
+                'expiry_date': today + timedelta(days=45),
             },
         ]
 
-        auftraege = {}
-        for auftrag_data in auftraege_data:
-            auftrag, _ = Auftrag.objects.get_or_create(**auftrag_data)
-            auftraege[auftrag.auftrag_id] = auftrag
+        orders = {}
+        for order_data in orders_data:
+            order, _ = Order.objects.get_or_create(**order_data)
+            orders[order.order_id] = order
 
         # Create Container for Order 1 (Medical Equipment)
         container1_1 = Container.objects.create(
-            auftrag=auftraege[1],
-            container_name='Container A1',
-            beschreibung='Medical consumables'
+            order=orders[1],
+            name='Container A1',
+            description='Medical consumables'
         )
         container1_2 = Container.objects.create(
-            auftrag=auftraege[1],
-            container_name='Container A2',
-            beschreibung='Instruments and devices'
+            order=orders[1],
+            name='Container A2',
+            description='Instruments and devices'
         )
 
         # Create Boxes for Container 1-1
         box1_1_1 = Box.objects.create(
             container=container1_1,
-            box_name='Box 1',
-            beschreibung='Dressing material'
+            name='Box 1',
+            description='Dressing material'
         )
         box1_1_2 = Box.objects.create(
             container=container1_1,
-            box_name='Box 2',
-            beschreibung='Disinfectants'
+            name='Box 2',
+            description='Disinfectants'
         )
 
         # Create Items for Boxes in Container 1-1
-        Item.objects.create(box=box1_1_1, item_name='Dressing material', menge=100)
-        Item.objects.create(box=box1_1_1, item_name='Bandages', menge=500)
-        Item.objects.create(box=box1_1_2, item_name='Disinfectant', menge=50)
-        Item.objects.create(box=box1_1_2, item_name='Gloves', menge=200)
+        Item.objects.create(box=box1_1_1, name='Dressing material', quantity=100)
+        Item.objects.create(box=box1_1_1, name='Bandages', quantity=500)
+        Item.objects.create(box=box1_1_2, name='Disinfectant', quantity=50)
+        Item.objects.create(box=box1_1_2, name='Gloves', quantity=200)
 
         # Create Boxes for Container 1-2
         box1_2_1 = Box.objects.create(
             container=container1_2,
-            box_name='Box 1',
-            beschreibung='Thermometers and stethoscopes'
+            name='Box 1',
+            description='Thermometers and stethoscopes'
         )
-        Item.objects.create(box=box1_2_1, item_name='Thermometer', menge=30)
-        Item.objects.create(box=box1_2_1, item_name='Stethoscope', menge=15)
+        Item.objects.create(box=box1_2_1, name='Thermometer', quantity=30)
+        Item.objects.create(box=box1_2_1, name='Stethoscope', quantity=15)
 
         # Create Container for Order 2 (Food)
         container2_1 = Container.objects.create(
-            auftrag=auftraege[2],
-            container_name='Container B1',
-            beschreibung='Canned and shelf-stable goods'
+            order=orders[2],
+            name='Container B1',
+            description='Canned and shelf-stable goods'
         )
 
         box2_1_1 = Box.objects.create(
             container=container2_1,
-            box_name='Box 1',
-            beschreibung='Canned food'
+            name='Box 1',
+            description='Canned food'
         )
         box2_1_2 = Box.objects.create(
             container=container2_1,
-            box_name='Box 2',
-            beschreibung='Dry goods'
+            name='Box 2',
+            description='Dry goods'
         )
 
-        Item.objects.create(box=box2_1_1, item_name='Canned goods', menge=500)
-        Item.objects.create(box=box2_1_1, item_name='Canned vegetables', menge=300)
-        Item.objects.create(box=box2_1_2, item_name='Rice', menge=100)
-        Item.objects.create(box=box2_1_2, item_name='Pasta', menge=150)
+        Item.objects.create(box=box2_1_1, name='Canned goods', quantity=500)
+        Item.objects.create(box=box2_1_1, name='Canned vegetables', quantity=300)
+        Item.objects.create(box=box2_1_2, name='Rice', quantity=100)
+        Item.objects.create(box=box2_1_2, name='Pasta', quantity=150)
 
         # Create Container for Order 3 (Winter Supplies)
         container3_1 = Container.objects.create(
-            auftrag=auftraege[3],
-            container_name='Container C1',
-            beschreibung='Textiles'
+            order=orders[3],
+            name='Container C1',
+            description='Textiles'
         )
 
         box3_1_1 = Box.objects.create(
             container=container3_1,
-            box_name='Box 1',
-            beschreibung='Blankets'
+            name='Box 1',
+            description='Blankets'
         )
         box3_1_2 = Box.objects.create(
             container=container3_1,
-            box_name='Box 2',
-            beschreibung='Winter clothing'
+            name='Box 2',
+            description='Winter clothing'
         )
 
-        Item.objects.create(box=box3_1_1, item_name='Wool blankets', menge=200)
-        Item.objects.create(box=box3_1_2, item_name='Winter jackets', menge=80)
-        Item.objects.create(box=box3_1_2, item_name='Gloves (winter)', menge=120)
+        Item.objects.create(box=box3_1_1, name='Wool blankets', quantity=200)
+        Item.objects.create(box=box3_1_2, name='Winter jackets', quantity=80)
+        Item.objects.create(box=box3_1_2, name='Gloves (winter)', quantity=120)
 
         # Create Container for Order 4 (Water & Hygiene)
         container4_1 = Container.objects.create(
-            auftrag=auftraege[4],
-            container_name='Container D1',
-            beschreibung='Water containers'
+            order=orders[4],
+            name='Container D1',
+            description='Water containers'
         )
 
         box4_1_1 = Box.objects.create(
             container=container4_1,
-            box_name='Box 1',
-            beschreibung='Drinking water'
+            name='Box 1',
+            description='Drinking water'
         )
         box4_1_2 = Box.objects.create(
             container=container4_1,
-            box_name='Box 2',
-            beschreibung='Hygiene articles'
+            name='Box 2',
+            description='Hygiene articles'
         )
 
-        Item.objects.create(box=box4_1_1, item_name='Drinking water', menge=75)
-        Item.objects.create(box=box4_1_2, item_name='Soap', menge=200)
-        Item.objects.create(box=box4_1_2, item_name='Toothbrushes', menge=150)
+        Item.objects.create(box=box4_1_1, name='Drinking water', quantity=75)
+        Item.objects.create(box=box4_1_2, name='Soap', quantity=200)
+        Item.objects.create(box=box4_1_2, name='Toothbrushes', quantity=150)
 
         # Create Order Inspections
         inspector = User.objects.get(username='test_inspector')
 
-        for auftrag_id, auftrag in auftraege.items():
+        for order_id, order in orders.items():
             # Create Order Inspection
-            auftragspruefung, _ = Auftragspruefung.objects.get_or_create(
-                auftrag=auftrag,
+            order_inspection, _ = OrderInspection.objects.get_or_create(
+                order=order,
                 defaults={
-                    'pruefer': inspector,
-                    'gesamtstatus': Auftragspruefung.PruefungStatus.BESTANDEN,
+                    'inspector': inspector,
+                    'overall_status': OrderInspection.InspectionStatus.BESTANDEN,
                 }
             )
 
             # Create Individual Inspections for each Container
-            for container in auftrag.container.all():
-                einzelpruefung, _ = Einzelpruefung.objects.get_or_create(
-                    auftragspruefung=auftragspruefung,
+            for container in order.containers.all():
+                individual_inspection, _ = IndividualInspection.objects.get_or_create(
+                    order_inspection=order_inspection,
                     container=container,
                     defaults={
-                        'pruefer': inspector,
-                        'status': Einzelpruefung.EinzelpruefungStatus.VOLLSTAENDIG,
-                        'bemerkung': f'Inspection of {container.container_name}',
+                        'inspector': inspector,
+                        'status': IndividualInspection.IndividualInspectionStatus.VOLLSTAENDIG,
+                        'comment': f'Inspection of {container.name}',
                     }
                 )
 
                 # Create Inspection Results for all Items in all Boxes of this Container
-                for box in container.boxen.all():
+                for box in container.boxes.all():
                     for item in box.items.all():
-                        PruefErgebnis.objects.get_or_create(
-                            einzelpruefung=einzelpruefung,
+                        InspectionResult.objects.get_or_create(
+                            individual_inspection=individual_inspection,
                             item=item,
                             defaults={
-                                'status': PruefErgebnis.ErgebnisStatus.VOLLSTAENDIG,
-                                'bemerkung': 'Quality checked and confirmed',
+                                'status': InspectionResult.ResultStatus.VOLLSTAENDIG,
+                                'comment': 'Quality checked and confirmed',
                             }
                         )
 
             # Create Shrinkage Report for the first Order Inspection
-            if auftrag_id == 1:
-                Schwund.objects.get_or_create(
-                    auftragspruefung=auftragspruefung,
+            if order_id == 1:
+                Shrinkage.objects.get_or_create(
+                    order_inspection=order_inspection,
                     defaults={
-                        'klassifizierung': 'Damage',
-                        'notiz': 'Packaging damaged during transport',
-                        'erstellt_von': inspector,
-                        'status': Schwund.SchwundStatus.GEMELDET,
+                        'classification': 'Damage',
+                        'note': 'Packaging damaged during transport',
+                        'created_by': inspector,
+                        'status': Shrinkage.ShrinkageStatus.GEMELDET,
                     }
                 )
 

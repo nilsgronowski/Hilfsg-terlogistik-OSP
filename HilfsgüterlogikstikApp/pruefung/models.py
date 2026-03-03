@@ -3,130 +3,134 @@ from django.contrib.auth.models import User
 from auftraege.models import Item, Container
 
 
-class Auftragspruefung(models.Model):
+class OrderInspection(models.Model):
     """Overall inspection for a complete order"""
     
-    class PruefungStatus(models.TextChoices):
+    class InspectionStatus(models.TextChoices):
         OFFEN = 'OFFEN', 'Open'
         IN_PRUEFUNG = 'IN_PRUEFUNG', 'In Inspection'
         BESTANDEN = 'BESTANDEN', 'Passed'
         NICHT_BESTANDEN = 'NICHT_BESTANDEN', 'Failed'
         ABGEBROCHEN = 'ABGEBROCHEN', 'Aborted'
     
-    auftragspruefung_id = models.AutoField(primary_key=True)
-    auftrag = models.ForeignKey('auftraege.Auftrag', on_delete=models.CASCADE, related_name='auftragspruefungen')
-    pruefer = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
-    datum = models.DateTimeField(auto_now_add=True)
-    gesamtstatus = models.CharField(
+    order_inspection_id = models.AutoField(primary_key=True)
+    order = models.ForeignKey('auftraege.Order', on_delete=models.CASCADE, related_name='order_inspections', db_column='auftrag_id')
+    inspector = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Inspector', db_column='pruefer_id')
+    date = models.DateTimeField(auto_now_add=True, verbose_name='Date', db_column='datum')
+    overall_status = models.CharField(
         max_length=20,
-        choices=PruefungStatus.choices,
-        default=PruefungStatus.OFFEN,
-        verbose_name='Overall status'
+        choices=InspectionStatus.choices,
+        default=InspectionStatus.OFFEN,
+        verbose_name='Overall Status',
+        db_column='gesamtstatus'
     )
 
     def __str__(self):
-        return f"Order inspection {self.auftragspruefung_id} - {self.auftrag.auftragnamen}"
+        return f"Order inspection {self.order_inspection_id} - {self.order.name}"
     
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
         # Update order status after saving
-        self.auftrag.aktualisiere_status_von_pruefung()
+        self.order.update_status_from_inspection()
 
     class Meta:
         verbose_name = "Order Inspection"
         verbose_name_plural = "Order Inspections"
-        ordering = ['-datum']
+        ordering = ['-date']
 
 
-class Einzelpruefung(models.Model):
+class IndividualInspection(models.Model):
     """Individual inspection within an order inspection (e.g. for a container)"""
     
-    class EinzelpruefungStatus(models.TextChoices):
+    class IndividualInspectionStatus(models.TextChoices):
         AUSSTEHEND = 'AUSSTEHEND', 'Pending'
         IN_PRUEFUNG = 'IN_PRUEFUNG', 'In Inspection'
         VOLLSTAENDIG = 'VOLLSTAENDIG', 'Complete'
         MIT_MAENGELN = 'MIT_MAENGELN', 'With Defects'
         UNVOLLSTAENDIG = 'UNVOLLSTAENDIG', 'Incomplete'
     
-    einzelpruefung_id = models.AutoField(primary_key=True)
-    auftragspruefung = models.ForeignKey(Auftragspruefung, on_delete=models.CASCADE, related_name='einzelpruefungen')
-    container = models.ForeignKey(Container, on_delete=models.CASCADE, null=True, blank=True, help_text='Container being inspected')
-    pruefer = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
-    datum = models.DateTimeField(auto_now_add=True)
+    individual_inspection_id = models.AutoField(primary_key=True)
+    order_inspection = models.ForeignKey(OrderInspection, on_delete=models.CASCADE, related_name='individual_inspections', db_column='auftragspruefung_id')
+    container = models.ForeignKey(Container, on_delete=models.CASCADE, null=True, blank=True, help_text='Container being inspected', verbose_name='Container', db_column='container_id')
+    inspector = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Inspector', db_column='pruefer_id')
+    date = models.DateTimeField(auto_now_add=True, verbose_name='Date', db_column='datum')
     status = models.CharField(
         max_length=20,
-        choices=EinzelpruefungStatus.choices,
-        default=EinzelpruefungStatus.AUSSTEHEND,
-        verbose_name='Status'
+        choices=IndividualInspectionStatus.choices,
+        default=IndividualInspectionStatus.AUSSTEHEND,
+        verbose_name='Status',
+        db_column='status'
     )
-    bemerkung = models.TextField(blank=True)
+    comment = models.TextField(blank=True, verbose_name='Comment', db_column='bemerkung')
 
     def __str__(self):
-        container_info = f" - {self.container.container_name}" if self.container else ""
-        return f"Individual inspection {self.einzelpruefung_id}{container_info}"
+        container_info = f" - {self.container.name}" if self.container else ""
+        return f"Individual inspection {self.individual_inspection_id}{container_info}"
 
     class Meta:
         verbose_name = "Individual Inspection"
         verbose_name_plural = "Individual Inspections"
-        ordering = ['auftragspruefung', 'datum']
+        ordering = ['order_inspection', 'date']
 
 
-class PruefErgebnis(models.Model):
+class InspectionResult(models.Model):
     """Inspection results for individual items in an individual inspection"""
     
-    class ErgebnisStatus(models.TextChoices):
+    class ResultStatus(models.TextChoices):
         VOLLSTAENDIG = 'VOLLSTAENDIG', 'Complete'
         UNVOLLSTAENDIG = 'UNVOLLSTAENDIG', 'Incomplete'
         BESCHAEDIGT = 'BESCHAEDIGT', 'Damaged'
         FEHLT = 'FEHLT', 'Missing'
         MANGELHAFT = 'MANGELHAFT', 'Defective'
     
-    pruefergebnis_id = models.AutoField(primary_key=True)
-    einzelpruefung = models.ForeignKey(Einzelpruefung, on_delete=models.CASCADE, related_name='ergebnisse')
-    item = models.ForeignKey(Item, on_delete=models.CASCADE)
+    inspection_result_id = models.AutoField(primary_key=True)
+    individual_inspection = models.ForeignKey(IndividualInspection, on_delete=models.CASCADE, related_name='results', db_column='einzelpruefung_id')
+    item = models.ForeignKey(Item, on_delete=models.CASCADE, verbose_name='Item', db_column='item_id')
     status = models.CharField(
         max_length=20,
-        choices=ErgebnisStatus.choices,
-        default=ErgebnisStatus.VOLLSTAENDIG,
-        verbose_name='Status'
+        choices=ResultStatus.choices,
+        default=ResultStatus.VOLLSTAENDIG,
+        verbose_name='Status',
+        db_column='status'
     )
-    bemerkung = models.TextField(blank=True)
+    comment = models.TextField(blank=True, verbose_name='Comment', db_column='bemerkung')
 
     def __str__(self):
-        return f"Inspection result {self.pruefergebnis_id} - {self.item.item_name}"
+        return f"Inspection result {self.inspection_result_id} - {self.item.name}"
 
     class Meta:
         verbose_name = "Inspection Result"
         verbose_name_plural = "Inspection Results"
-        ordering = ['einzelpruefung', 'pruefergebnis_id']
+        ordering = ['individual_inspection', 'inspection_result_id']
 
 
-class Schwund(models.Model):
+class Shrinkage(models.Model):
     """Shrinkage report for an order inspection"""
     
-    class SchwundStatus(models.TextChoices):
+    class ShrinkageStatus(models.TextChoices):
         GEMELDET = 'GEMELDET', 'Reported'
         IN_BEARBEITUNG = 'IN_BEARBEITUNG', 'In Progress'
         GEKLAERT = 'GEKLAERT', 'Resolved'
         ABGESCHLOSSEN = 'ABGESCHLOSSEN', 'Completed'
     
-    schwund_id = models.AutoField(primary_key=True)
-    auftragspruefung = models.OneToOneField(Auftragspruefung, on_delete=models.CASCADE, related_name='schwund_report')
-    klassifizierung = models.CharField(max_length=255)
-    notiz = models.TextField()
-    erstellt_von = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
-    datum = models.DateTimeField(auto_now_add=True)
+    shrinkage_id = models.AutoField(primary_key=True)
+    order_inspection = models.OneToOneField(OrderInspection, on_delete=models.CASCADE, related_name='shrinkage_report', db_column='auftragspruefung_id')
+    classification = models.CharField(max_length=255, verbose_name='Classification', db_column='klassifizierung')
+    note = models.TextField(verbose_name='Note', db_column='notiz')
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Created By', db_column='erstellt_von_id')
+    date = models.DateTimeField(auto_now_add=True, verbose_name='Date', db_column='datum')
     status = models.CharField(
         max_length=20,
-        choices=SchwundStatus.choices,
-        default=SchwundStatus.GEMELDET,
-        verbose_name='Status'
+        choices=ShrinkageStatus.choices,
+        default=ShrinkageStatus.GEMELDET,
+        verbose_name='Status',
+        db_column='status'
     )
 
     def __str__(self):
-        return f"Shrinkage {self.schwund_id} - {self.auftragspruefung.auftrag.auftragnamen}"
+        return f"Shrinkage {self.shrinkage_id} - {self.order_inspection.order.name}"
 
     class Meta:
         verbose_name = "Shrinkage"
         verbose_name_plural = "Shrinkage"
-        ordering = ['-datum']
+        ordering = ['-date']

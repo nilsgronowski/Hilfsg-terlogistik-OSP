@@ -1,29 +1,29 @@
 from django.contrib import admin
 from auftraege.models import Item
-from .models import Auftragspruefung, Einzelpruefung, PruefErgebnis, Schwund
+from .models import OrderInspection, IndividualInspection, InspectionResult, Shrinkage
 
 
 # Inline for inspection results in individual inspection
-class PruefErgebnisInline(admin.TabularInline):
-    model = PruefErgebnis
+class InspectionResultInline(admin.TabularInline):
+    model = InspectionResult
     extra = 1
-    fields = ('pruefergebnis_id', 'item', 'status', 'bemerkung')
-    readonly_fields = ('pruefergebnis_id',)
+    fields = ('inspection_result_id', 'item', 'status', 'comment')
+    readonly_fields = ('inspection_result_id',)
 
     def get_formset(self, request, obj=None, **kwargs):
-        request._einzelpruefung_obj = obj
+        request._individual_inspection_obj = obj
         return super().get_formset(request, obj, **kwargs)
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == 'item':
-            einzelpruefung = getattr(request, '_einzelpruefung_obj', None)
-            if einzelpruefung and einzelpruefung.container:
+            individual_inspection = getattr(request, '_individual_inspection_obj', None)
+            if individual_inspection and individual_inspection.container:
                 # Get all items from all boxes of this container
-                kwargs['queryset'] = Item.objects.filter(box__container=einzelpruefung.container)
-            elif einzelpruefung and einzelpruefung.auftragspruefung:
+                kwargs['queryset'] = Item.objects.filter(box__container=individual_inspection.container)
+            elif individual_inspection and individual_inspection.order_inspection:
                 # Fallback: All items of the order
                 kwargs['queryset'] = Item.objects.filter(
-                    box__container__auftrag=einzelpruefung.auftragspruefung.auftrag
+                    box__container__order=individual_inspection.order_inspection.order
                 )
             else:
                 kwargs['queryset'] = Item.objects.none()
@@ -31,65 +31,94 @@ class PruefErgebnisInline(admin.TabularInline):
 
 
 # Inline for individual inspections in order inspection
-class EinzelpruefungInline(admin.TabularInline):
-    model = Einzelpruefung
+class IndividualInspectionInline(admin.TabularInline):
+    model = IndividualInspection
     extra = 1
-    fields = ('einzelpruefung_id', 'container', 'pruefer', 'status', 'bemerkung')
-    readonly_fields = ('einzelpruefung_id', 'datum')
+    fields = ('individual_inspection_id', 'container', 'inspector', 'status', 'comment')
+    readonly_fields = ('individual_inspection_id', 'date')
     show_change_link = True
+
+    def get_formset(self, request, obj=None, **kwargs):
+        request._order_inspection_obj = obj
+        return super().get_formset(request, obj, **kwargs)
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == 'container':
+            order_inspection = getattr(request, '_order_inspection_obj', None)
+            if order_inspection:
+                # Filter containers to only show those from the same order
+                from auftraege.models import Container
+                kwargs['queryset'] = Container.objects.filter(order=order_inspection.order)
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 
 # Inline for shrinkage in order inspection (1:1)
-class SchwundInline(admin.StackedInline):
-    model = Schwund
+class ShrinkageInline(admin.StackedInline):
+    model = Shrinkage
     can_delete = False
-    fields = ('klassifizierung', 'notiz', 'erstellt_von', 'status')
-    readonly_fields = ('datum',)
+    fields = ('classification', 'note', 'created_by', 'status')
+    readonly_fields = ('date',)
     verbose_name = 'Shrinkage'
     verbose_name_plural = 'Shrinkage'
 
 
-@admin.register(Auftragspruefung)
-class AuftragspruefungAdmin(admin.ModelAdmin):
-    list_display = ('auftragspruefung_id', 'auftrag', 'pruefer', 'datum', 'gesamtstatus')
-    list_filter = ('gesamtstatus', 'datum')
-    search_fields = ('auftrag__auftragnamen', 'pruefer__username')
-    readonly_fields = ('datum',)
-    fields = ('auftrag', 'pruefer', 'gesamtstatus')
-    inlines = [EinzelpruefungInline, SchwundInline]
-    ordering = ('-datum',)
+@admin.register(OrderInspection)
+class OrderInspectionAdmin(admin.ModelAdmin):
+    list_display = ('order_inspection_id', 'order', 'inspector', 'date', 'overall_status')
+    list_filter = ('overall_status', 'date')
+    search_fields = ('order__name', 'inspector__username')
+    readonly_fields = ('date',)
+    fields = ('order', 'inspector', 'overall_status')
+    inlines = [IndividualInspectionInline, ShrinkageInline]
+    ordering = ('-date',)
 
 
-@admin.register(Einzelpruefung)
-class EinzelpruefungAdmin(admin.ModelAdmin):
-    list_display = ('einzelpruefung_id', 'auftragspruefung', 'container', 'pruefer', 'datum', 'status')
-    list_filter = ('status', 'datum', 'auftragspruefung__auftrag')
-    search_fields = ('auftragspruefung__auftrag__auftragnamen', 'container__container_name', 'bemerkung')
-    readonly_fields = ('datum',)
-    fields = ('auftragspruefung', 'container', 'pruefer', 'status', 'bemerkung')
-    inlines = [PruefErgebnisInline]
-    ordering = ('-datum',)
+@admin.register(IndividualInspection)
+class IndividualInspectionAdmin(admin.ModelAdmin):
+    list_display = ('individual_inspection_id', 'order_inspection', 'container', 'inspector', 'date', 'status')
+    list_filter = ('status', 'date', 'order_inspection__order')
+    search_fields = ('order_inspection__order__name', 'container__name', 'comment')
+    readonly_fields = ('date',)
+    fields = ('order_inspection', 'container', 'inspector', 'status', 'comment')
+    inlines = [InspectionResultInline]
+    ordering = ('-date',)
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == 'container':
+            # Get the IndividualInspection object if editing
+            from auftraege.models import Container
+            if request.resolver_match.kwargs.get('object_id'):
+                individual_inspection = IndividualInspection.objects.get(pk=request.resolver_match.kwargs['object_id'])
+                # Filter containers to only show those from the same order
+                kwargs['queryset'] = Container.objects.filter(order=individual_inspection.order_inspection.order)
+            elif hasattr(request, '_order_inspection_obj') and request._order_inspection_obj:
+                # When creating through inline
+                kwargs['queryset'] = Container.objects.filter(order=request._order_inspection_obj.order)
+            else:
+                # Fallback: show limited selection
+                kwargs['queryset'] = Container.objects.all()
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 
-@admin.register(PruefErgebnis)
-class PruefErgebnisAdmin(admin.ModelAdmin):
-    list_display = ('pruefergebnis_id', 'einzelpruefung', 'item', 'status')
-    list_filter = ('status', 'einzelpruefung__auftragspruefung__auftrag')
-    search_fields = ('einzelpruefung__auftragspruefung__auftrag__auftragnamen', 'item__item_name', 'bemerkung')
-    fields = ('einzelpruefung', 'item', 'status', 'bemerkung')
-    ordering = ('einzelpruefung', 'pruefergebnis_id')
+@admin.register(InspectionResult)
+class InspectionResultAdmin(admin.ModelAdmin):
+    list_display = ('inspection_result_id', 'individual_inspection', 'item', 'status')
+    list_filter = ('status', 'individual_inspection__order_inspection__order')
+    search_fields = ('individual_inspection__order_inspection__order__name', 'item__name', 'comment')
+    fields = ('individual_inspection', 'item', 'status', 'comment')
+    ordering = ('individual_inspection', 'inspection_result_id')
 
 
-@admin.register(Schwund)
-class SchwundAdmin(admin.ModelAdmin):
-    list_display = ('schwund_id', 'get_auftrag', 'klassifizierung', 'erstellt_von', 'datum', 'status')
-    list_filter = ('status', 'klassifizierung', 'datum')
-    search_fields = ('auftragspruefung__auftrag__auftragnamen', 'klassifizierung', 'notiz')
-    readonly_fields = ('datum',)
-    fields = ('auftragspruefung', 'klassifizierung', 'notiz', 'erstellt_von', 'status')
-    ordering = ('-datum',)
+@admin.register(Shrinkage)
+class ShrinkageAdmin(admin.ModelAdmin):
+    list_display = ('shrinkage_id', 'get_order', 'classification', 'created_by', 'date', 'status')
+    list_filter = ('status', 'classification', 'date')
+    search_fields = ('order_inspection__order__name', 'classification', 'note')
+    readonly_fields = ('date',)
+    fields = ('order_inspection', 'classification', 'note', 'created_by', 'status')
+    ordering = ('-date',)
 
-    def get_auftrag(self, obj):
-        return obj.auftragspruefung.auftrag.auftragnamen
-    get_auftrag.short_description = 'Order'
-    get_auftrag.admin_order_field = 'auftragspruefung__auftrag'
+    def get_order(self, obj):
+        return obj.order_inspection.order.name
+    get_order.short_description = 'Order'
+    get_order.admin_order_field = 'order_inspection__order'

@@ -1,11 +1,11 @@
 from django.contrib import admin
 from django import forms
-from .models import Auftrag, Container, Box, Item
+from .models import Order, Container, Box, Item
 
 
 # Filter widget for existing boxes in container
 class ContainerForm(forms.ModelForm):
-    boxen = forms.ModelMultipleChoiceField(
+    boxes = forms.ModelMultipleChoiceField(
         queryset=Box.objects.all(),
         required=False,
         widget=admin.widgets.FilteredSelectMultiple('Boxes', False),
@@ -20,7 +20,7 @@ class ContainerForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.instance.pk:
-            self.fields['boxen'].initial = self.instance.boxen.all()
+            self.fields['boxes'].initial = self.instance.boxes.all()
 
     def save(self, commit=True):
         container = super().save(commit=False)
@@ -28,7 +28,7 @@ class ContainerForm(forms.ModelForm):
             container.save()
         if container.pk:
             # Update box assignment
-            container.boxen.set(self.cleaned_data['boxen'])
+            container.boxes.set(self.cleaned_data['boxes'])
         return container
 
 
@@ -36,7 +36,7 @@ class ContainerForm(forms.ModelForm):
 class ItemInline(admin.TabularInline):
     model = Item
     extra = 1
-    fields = ('item_id', 'item_name', 'menge')
+    fields = ('item_id', 'name', 'quantity')
     readonly_fields = ('item_id',)
 
 
@@ -44,7 +44,7 @@ class ItemInline(admin.TabularInline):
 class BoxInline(admin.TabularInline):
     model = Box
     extra = 1
-    fields = ('box_id', 'box_name', 'beschreibung')
+    fields = ('box_id', 'name', 'description')
     readonly_fields = ('box_id',)
     show_change_link = True
     verbose_name = 'Create new box'
@@ -55,18 +55,18 @@ class BoxInline(admin.TabularInline):
 class ContainerInline(admin.TabularInline):
     model = Container
     extra = 1
-    fields = ('container_id', 'container_name', 'beschreibung')
+    fields = ('container_id', 'name', 'description')
     readonly_fields = ('container_id',)
     show_change_link = True
 
 
-@admin.register(Auftrag)
-class AuftragAdmin(admin.ModelAdmin):
-    list_display = ('auftrag_id', 'auftragnamen', 'kategorie', 'verfallsdatum', 'status')
-    list_filter = ('kategorie', 'verfallsdatum', 'status')
-    search_fields = ('auftragnamen', 'kategorie')
-    ordering = ('-verfallsdatum',)
-    fields = ('auftragnamen', 'kategorie', 'verfallsdatum', 'status')
+@admin.register(Order)
+class OrderAdmin(admin.ModelAdmin):
+    list_display = ('order_id', 'name', 'category', 'expiry_date', 'status')
+    list_filter = ('category', 'expiry_date', 'status')
+    search_fields = ('name', 'category')
+    ordering = ('-expiry_date',)
+    fields = ('name', 'category', 'expiry_date', 'status')
     readonly_fields = ('status',)
     inlines = [ContainerInline]
 
@@ -74,50 +74,50 @@ class AuftragAdmin(admin.ModelAdmin):
 @admin.register(Container)
 class ContainerAdmin(admin.ModelAdmin):
     form = ContainerForm
-    list_display = ('container_id', 'container_name', 'auftrag', 'beschreibung', 'get_boxen_count')
-    list_filter = ('auftrag',)
-    search_fields = ('container_name', 'auftrag__auftragnamen')
-    ordering = ('auftrag', 'container_id')
-    fields = ('auftrag', 'container_name', 'beschreibung', 'boxen')
+    list_display = ('container_id', 'name', 'order', 'description', 'get_boxes_count')
+    list_filter = ('order',)
+    search_fields = ('name', 'order__name')
+    ordering = ('order', 'container_id')
+    fields = ('order', 'name', 'description', 'boxes')
     inlines = [BoxInline]
 
-    def get_boxen_count(self, obj):
-        return obj.boxen.count()
-    get_boxen_count.short_description = 'Number of boxes'
+    def get_boxes_count(self, obj):
+        return obj.boxes.count()
+    get_boxes_count.short_description = 'Number of boxes'
 
 
 @admin.register(Box)
 class BoxAdmin(admin.ModelAdmin):
-    list_display = ('box_id', 'box_name', 'container', 'get_auftrag')
-    list_filter = ('container__auftrag',)
-    search_fields = ('box_name', 'container__container_name', 'container__auftrag__auftragnamen')
+    list_display = ('box_id', 'name', 'container', 'get_order')
+    list_filter = ('container__order',)
+    search_fields = ('name', 'container__name', 'container__order__name')
     ordering = ('container', 'box_id')
-    fields = ('container', 'box_name', 'beschreibung')
+    fields = ('container', 'name', 'description')
     inlines = [ItemInline]
 
-    def get_auftrag(self, obj):
-        return obj.container.auftrag.auftragnamen
-    get_auftrag.short_description = 'Order'
-    get_auftrag.admin_order_field = 'container__auftrag'
+    def get_order(self, obj):
+        return obj.container.order.name
+    get_order.short_description = 'Order'
+    get_order.admin_order_field = 'container__order'
 
 
 @admin.register(Item)
 class ItemAdmin(admin.ModelAdmin):
-    list_display = ('item_id', 'item_name', 'menge', 'box', 'get_container', 'get_auftrag')
-    list_filter = ('box__container__auftrag',)
-    search_fields = ('item_name', 'box__box_name', 'box__container__container_name')
+    list_display = ('item_id', 'name', 'quantity', 'box', 'get_container', 'get_order')
+    list_filter = ('box__container__order',)
+    search_fields = ('name', 'box__name', 'box__container__name')
     ordering = ('box', 'item_id')
-    fields = ('box', 'item_name', 'menge')
+    fields = ('box', 'name', 'quantity')
 
     def get_container(self, obj):
-        return obj.box.container.container_name
+        return obj.box.container.name
     get_container.short_description = 'Container'
     get_container.admin_order_field = 'box__container'
 
-    def get_auftrag(self, obj):
-        return obj.box.container.auftrag.auftragnamen
-    get_auftrag.short_description = 'Order'
-    get_auftrag.admin_order_field = 'box__container__auftrag'
+    def get_order(self, obj):
+        return obj.box.container.order.name
+    get_order.short_description = 'Order'
+    get_order.admin_order_field = 'box__container__order'
 
 
 

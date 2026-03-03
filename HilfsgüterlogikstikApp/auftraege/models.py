@@ -1,10 +1,10 @@
 from django.db import models
 
 
-class Auftrag(models.Model):
+class Order(models.Model):
     """Orders for relief supplies"""
     
-    class AuftragStatus(models.TextChoices):
+    class OrderStatus(models.TextChoices):
         OFFEN = 'OFFEN', 'Open'
         IN_BEARBEITUNG = 'IN_BEARBEITUNG', 'In Progress'
         IN_PRUEFUNG = 'IN_PRUEFUNG', 'In Inspection'
@@ -12,67 +12,68 @@ class Auftrag(models.Model):
         ABGESCHLOSSEN = 'ABGESCHLOSSEN', 'Completed'
         STORNIERT = 'STORNIERT', 'Cancelled'
     
-    auftrag_id = models.AutoField(primary_key=True)
-    auftragnamen = models.CharField(max_length=255)
-    kategorie = models.CharField(max_length=255)
-    verfallsdatum = models.DateField()
+    order_id = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=255, verbose_name='Name', db_column='auftragnamen')
+    category = models.CharField(max_length=255, verbose_name='Category', db_column='kategorie')
+    expiry_date = models.DateField(verbose_name='Expiry Date', db_column='verfallsdatum')
     status = models.CharField(
         max_length=20,
-        choices=AuftragStatus.choices,
-        default=AuftragStatus.OFFEN,
-        verbose_name='Status'
+        choices=OrderStatus.choices,
+        default=OrderStatus.OFFEN,
+        verbose_name='Status',
+        db_column='status'
     )
 
     def __str__(self):
-        return self.auftragnamen
+        return self.name
     
-    def aktualisiere_status_von_pruefung(self):
+    def update_status_from_inspection(self):
         """Updates the status based on the last order inspection"""
-        letzte_pruefung = self.auftragspruefungen.order_by('-datum').first()
-        if letzte_pruefung:
+        last_inspection = self.order_inspections.order_by('-date').first()
+        if last_inspection:
             status_mapping = {
-                'OFFEN': self.AuftragStatus.IN_PRUEFUNG,
-                'IN_PRUEFUNG': self.AuftragStatus.IN_PRUEFUNG,
-                'BESTANDEN': self.AuftragStatus.GEPRUEFT,
-                'NICHT_BESTANDEN': self.AuftragStatus.IN_BEARBEITUNG,
+                'OFFEN': self.OrderStatus.IN_PRUEFUNG,
+                'IN_PRUEFUNG': self.OrderStatus.IN_PRUEFUNG,
+                'BESTANDEN': self.OrderStatus.GEPRUEFT,
+                'NICHT_BESTANDEN': self.OrderStatus.IN_BEARBEITUNG,
             }
             self.status = status_mapping.get(
-                letzte_pruefung.gesamtstatus,
-                self.AuftragStatus.IN_PRUEFUNG
+                last_inspection.overall_status,
+                self.OrderStatus.IN_PRUEFUNG
             )
             self.save()
 
     class Meta:
         verbose_name = "Order"
         verbose_name_plural = "Orders"
-        ordering = ['-verfallsdatum']
+        ordering = ['-expiry_date']
 
 
 class Container(models.Model):
     """Containers belong to an order"""
     container_id = models.AutoField(primary_key=True)
-    auftrag = models.ForeignKey(Auftrag, on_delete=models.CASCADE, related_name='container')
-    container_name = models.CharField(max_length=255)
-    beschreibung = models.TextField(blank=True, null=True)
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='containers', db_column='auftrag_id')
+    name = models.CharField(max_length=255, verbose_name='Container Name', db_column='container_name')
+    description = models.TextField(blank=True, null=True, verbose_name='Description', db_column='beschreibung')
 
     def __str__(self):
-        return f"{self.container_name} ({self.auftrag.auftragnamen})"
+        return f"{self.name} ({self.order.name})"
 
     class Meta:
         verbose_name = "Container"
         verbose_name_plural = "Containers"
-        ordering = ['auftrag', 'container_id']
+        ordering = ['order', 'container_id']
 
 
 class Box(models.Model):
     """Boxes belong to a container"""
     box_id = models.AutoField(primary_key=True)
-    container = models.ForeignKey(Container, on_delete=models.CASCADE, related_name='boxen')
-    box_name = models.CharField(max_length=255)
-    beschreibung = models.TextField(blank=True, null=True)
+    container = models.ForeignKey(Container, on_delete=models.CASCADE, related_name='boxes', db_column='container_id')
+    name = models.CharField(max_length=255, verbose_name='Box Name', db_column='box_name')
+    description = models.TextField(blank=True, null=True, verbose_name='Description', db_column='beschreibung')
 
     def __str__(self):
-        return f"{self.box_name} ({self.container.container_name})"
+        return f"{self.name} ({self.container.name})"
 
     class Meta:
         verbose_name = "Box"
@@ -83,12 +84,12 @@ class Box(models.Model):
 class Item(models.Model):
     """Items/Positions in boxes"""
     item_id = models.AutoField(primary_key=True)
-    box = models.ForeignKey(Box, on_delete=models.CASCADE, related_name='items')
-    item_name = models.CharField(max_length=255)
-    menge = models.IntegerField()
+    box = models.ForeignKey(Box, on_delete=models.CASCADE, related_name='items', db_column='box_id')
+    name = models.CharField(max_length=255, verbose_name='Item Name', db_column='item_name')
+    quantity = models.IntegerField(verbose_name='Quantity', db_column='menge')
 
     def __str__(self):
-        return f"{self.item_name} (x{self.menge})"
+        return f"{self.name} (x{self.quantity})"
 
     class Meta:
         verbose_name = "Item"
