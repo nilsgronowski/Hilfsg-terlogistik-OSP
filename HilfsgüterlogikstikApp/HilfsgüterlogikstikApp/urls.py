@@ -15,8 +15,14 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
+# Import for side effects: apply custom admin ordering.
+from HilfsgüterlogikstikApp import admin as project_admin
+from HilfsgüterlogikstikApp.views import register
 from django.urls import path
+from django.views.generic import RedirectView
 
 urlpatterns = [
+    path('', RedirectView.as_view(url='/admin/', permanent=True)),
     path('admin/', admin.site.urls),
+    path('register/', register, name='register'),
 ]

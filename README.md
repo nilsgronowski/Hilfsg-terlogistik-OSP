@@ -1,136 +1,136 @@
 # Django Project Setup
 
-## Überblick
+## Overview
 
-Dieses Projekt nutzt Docker Compose für Django + MySQL 8.4. Die Konfiguration erfolgt über `.env`‑Dateien:
+This project uses Docker Compose for Django + MySQL 8.4. Configuration is done via `.env` files:
 
-- `.env.local` für lokale Entwicklung
-- `.env.prod` für Produktion
+- `.env.local` for local development
+- `.env.prod` for production
 
-**Projektstruktur:**
+**Project Structure:**
 
-- Django‑Projekt: `HilfsgüterlogikstikApp/`
+- Django project: `HilfsgüterlogikstikApp/`
 - Container working directory: `/app/HilfsgüterlogikstikApp`
-- Env‑Variablen werden via `env_file` in docker-compose geladen
-- `DOCKER_ENV=1` signalisiert Container-Umgebung
+- Environment variables are loaded via `env_file` in docker-compose
+- `DOCKER_ENV=1` signals container environment
 
-## Voraussetzungen
+## Prerequisites
 
 - Docker
 - Docker Compose
 
-## Schnellstart (Local / Dev)
+## Quick Start (Local / Dev)
 
-1. **In das Projekt wechseln:**
+1. **Navigate to the project:**
 
    ```bash
    cd /path/to/project
    ```
 
-2. **Container starten (Dev):**
+2. **Start containers (Dev):**
 
    ```bash
    docker-compose up -d --build
    ```
 
-3. **Migrationen ausführen:**
+3. **Run migrations:**
 
    ```bash
    docker-compose exec web python manage.py migrate
    ```
 
-4. **Superuser anlegen:**
+4. **Create superuser:**
 
    ```bash
    docker-compose exec web python manage.py createsuperuser
    ```
 
-5. **App öffnen:**
+5. **Open app:**
    - Django: http://localhost:8000
    - Admin: http://localhost:8000/admin/
 
-## Wechsel zwischen Dev und Prod
+## Switching Between Dev and Prod
 
-**Standard:** Docker Compose lädt `.env.local` via `env_file`.
+**Default:** Docker Compose loads `.env.local` via `env_file`.
 
-### Prod mit eigener Env starten
+### Starting Prod with Custom Env
 
-Um die Prod‑Konfiguration zu nutzen, passe `docker-compose.yml` an:
+To use the production configuration, adjust `docker-compose.yml`:
 
 ```yaml
 env_file:
   - .env.prod
 ```
 
-Oder starte mit Override:
+Or start with override:
 
 ```bash
 docker-compose --env-file .env.prod up -d --build
 ```
 
-**Hinweis:** Im Container werden Env-Variablen direkt von docker-compose gesetzt. Lokale Entwicklung (ohne Docker) lädt `.env.local` via `load_dotenv()` in den Settings.
+**Note:** In the container, environment variables are set directly by docker-compose. Local development (without Docker) loads `.env.local` via `load_dotenv()` in the settings.
 
-## Wichtige Umgebungsvariablen
+## Important Environment Variables
 
-- `DOCKER_ENV`: `1` im Container (signalisiert docker-compose Umgebung)
-- `DJANGO_ENV`: `local` oder `prod` (für lokale Entwicklung)
-- `DEBUG`: `true`/`false` oder `1`/`0`
-- `SECRET_KEY`: Django Secret Key (niemals leer lassen in Prod!)
-- `ALLOWED_HOSTS`: Kommagetrennte Liste (z.B. `localhost,127.0.0.1`)
+- `DOCKER_ENV`: `1` in container (signals docker-compose environment)
+- `DJANGO_ENV`: `local` or `prod` (for local development)
+- `DEBUG`: `true`/`false` or `1`/`0`
+- `SECRET_KEY`: Django Secret Key (never leave empty in prod!)
+- `ALLOWED_HOSTS`: Comma-separated list (e.g., `localhost,127.0.0.1`)
 - `DB_ENGINE`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`
 
-## Nützliche Kommandos
+## Useful Commands
 
 - **Start:** `docker-compose up -d`
 - **Stop:** `docker-compose down`
 - **Logs:** `docker-compose logs -f web`
 - **Shell:** `docker-compose exec web python manage.py shell`
-- **App erstellen:** `docker-compose exec web python manage.py startapp appname`
-- **Migrationen:** `docker-compose exec web python manage.py makemigrations`
+- **Create app:** `docker-compose exec web python manage.py startapp appname`
+- **Migrations:** `docker-compose exec web python manage.py makemigrations`
 - **Apply:** `docker-compose exec web python manage.py migrate`
 
 ## Requirements Workflow
 
-**Ziel:** requirements.txt ist die source‑of‑truth und wird bewusst gepflegt.
+**Goal:** requirements.txt is the source-of-truth and is maintained consciously.
 
-### Empfohlener Ablauf
+### Recommended Process
 
-1. **Neues Paket hinzufügen**
-   - Trage es direkt in `requirements.txt` ein (mit gewünschter Version).
-   - Rebuild Container:
+1. **Add new package**
+   - Add it directly to `requirements.txt` (with desired version).
+   - Rebuild container:
 
    ```bash
    docker-compose up -d --build
    ```
 
-   Oder installiere ohne Rebuild:
+   Or install without rebuild:
 
    ```bash
    docker-compose exec web pip install <package>
    ```
 
-2. **Paket aktualisieren**
-   - Version in `requirements.txt` anpassen.
+2. **Update package**
+   - Adjust version in `requirements.txt`.
    - Rebuild:
 
    ```bash
    docker-compose up -d --build
    ```
 
-3. **Freeze nur bei Releases**
-   - `pip freeze` wird **nicht** nach jedem Install genutzt.
-   - Bei Release oder größeren Änderungen einmal aktualisieren:
+3. **Freeze only on releases**
+   - `pip freeze` is **not** used after every install.
+   - Update once on release or major changes:
 
    ```bash
    docker-compose exec web pip freeze > requirements.txt
    ```
 
-### Warum so?
+### Why This Way?
 
-- Stabilere und nachvollziehbare Abhängigkeiten
-- Vermeidet ungewollte Version‑Updates
+- More stable and traceable dependencies
+- Avoids unwanted version updates
 
-## Datenbank
+## Database
 
 - **Host:** db
 - **Port:** 3306

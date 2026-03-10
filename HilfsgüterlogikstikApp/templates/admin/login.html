@@ -1,0 +1,355 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block title %}{% trans 'Log in' %} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    /* Reset and Base Styles */
+    html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+    }
+
+    body {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background-attachment: fixed;
+        min-height: 100vh;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        overflow-x: hidden;
+        overflow-y: auto;
+    }
+
+    #container {
+        width: 100%;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 2rem 1rem;
+        box-sizing: border-box;
+    }
+
+    #content {
+        width: 100%;
+        max-width: 420px;
+        margin: 0 auto;
+        padding: 0;
+    }
+
+    #content-main {
+        width: 100%;
+        padding: 0;
+        margin: 0;
+    }
+
+    .login-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+        animation: fadeInUp 0.6s ease-out;
+        max-height: 100%;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .login-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2.5rem 2rem;
+        text-align: center;
+    }
+
+    .login-header h1 {
+        color: white;
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .login-header p {
+        margin: 0;
+        opacity: 0.95;
+        font-size: 0.95rem;
+    }
+
+    #login-form {
+        padding: 2rem;
+    }
+
+    .form-row {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-row label {
+        display: block;
+        font-weight: 600;
+        color: #4a5568;
+        font-size: 0.875rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-row input[type="text"],
+    .form-row input[type="password"] {
+        width: 100%;
+        padding: 0.875rem 1rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 10px;
+        font-size: 0.95rem;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        background: #f7fafc;
+        color: #2d3748;
+        box-sizing: border-box;
+    }
+
+    .form-row input:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        outline: 0;
+        background: white;
+    }
+
+    .errorlist {
+        margin: 0.5rem 0 0 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .errorlist li {
+        color: #f56565;
+        font-size: 0.8125rem;
+        padding: 0.25rem 0;
+        font-weight: 500;
+    }
+
+    .errornote {
+        background: #fff5f5;
+        border: 1px solid #feb2b2;
+        border-left: 4px solid #f56565;
+        color: #c53030;
+        padding: 1rem;
+        border-radius: 10px;
+        margin-bottom: 1.5rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+    .submit-row {
+        margin-top: 2rem;
+        padding: 0;
+    }
+
+    .submit-row input {
+        width: 100%;
+        padding: 0.95rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .submit-row input:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+    }
+
+    .submit-row input:active {
+        transform: translateY(0);
+    }
+
+    .register-link {
+        text-align: center;
+        padding: 1.5rem 0;
+        border-top: 1px solid #e2e8f0;
+        margin-top: 1.5rem;
+        color: #718096;
+        font-size: 0.875rem;
+    }
+
+    .register-link a {
+        color: #667eea;
+        font-weight: 600;
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .register-link a:hover {
+        color: #764ba2;
+        text-decoration: underline;
+    }
+
+    /* Hide default Django branding */
+    #header, div.breadcrumbs {
+        display: none;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        #container {
+            padding: 1rem;
+            align-items: flex-start;
+        }
+
+        .login-header {
+            padding: 1.75rem 1.5rem;
+        }
+
+        .login-header h1 {
+            font-size: 1.5rem;
+        }
+
+        #login-form {
+            padding: 1.5rem;
+        }
+
+        .form-row {
+            margin-bottom: 1.25rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        #container {
+            padding: 0.75rem;
+        }
+
+        #content {
+            max-width: 100%;
+        }
+
+        .login-card {
+            border-radius: 12px;
+        }
+
+        .login-header {
+            padding: 1.5rem 1.25rem;
+        }
+
+        .login-header h1 {
+            font-size: 1.35rem;
+        }
+
+        .login-header p {
+            font-size: 0.85rem;
+        }
+
+        #login-form {
+            padding: 1.25rem;
+        }
+
+        .form-row {
+            margin-bottom: 1rem;
+        }
+
+        .form-row input[type="text"],
+        .form-row input[type="password"] {
+            font-size: 16px; /* Prevents zoom on iOS */
+            padding: 0.75rem 0.875rem;
+        }
+
+        .submit-row {
+            margin-top: 1.5rem;
+        }
+
+        .submit-row input {
+            padding: 0.85rem;
+        }
+
+        .register-link {
+            padding: 1.25rem 0;
+        }
+    }
+
+    @media (max-width: 360px) {
+        #container {
+            padding: 0.5rem;
+        }
+
+        #login-form {
+            padding: 1rem;
+        }
+
+        .login-header {
+            padding: 1.25rem 1rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content_title %}{% endblock %}
+{% block nav-breadcrumbs %}{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <div class="login-card">
+        <div class="login-header">
+            <h1>{% trans 'Welcome Back' %}</h1>
+            <p>{% trans 'Relief Supplies Logistics Control Center' %}</p>
+        </div>
+
+        <form method="post" id="login-form" action="{% url 'admin:login' %}">
+            {% csrf_token %}
+
+            {% if form.errors and not form.username.errors and not form.password.errors %}
+                <p class="errornote">
+                    {% trans "Please enter the correct username and password. Note that both fields may be case-sensitive." %}
+                </p>
+            {% endif %}
+
+            <div class="form-row">
+                {{ form.username.label_tag }}
+                {{ form.username }}
+                {% if form.username.errors %}
+                <ul class="errorlist">
+                    {% for error in form.username.errors %}
+                    <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+
+            <div class="form-row">
+                {{ form.password.label_tag }}
+                {{ form.password }}
+                {% if form.password.errors %}
+                <ul class="errorlist">
+                    {% for error in form.password.errors %}
+                    <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+
+            <input type="hidden" name="next" value="{{ next }}">
+
+            <div class="submit-row">
+                <input type="submit" value="{% trans 'Sign in' %}">
+            </div>
+
+            <div class="register-link">
+                {% trans "Don't have an account?" %}
+                <a href="{% url 'register' %}">{% trans "Create account" %}</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
