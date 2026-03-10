@@ -1,10 +1,17 @@
 from django.contrib import admin
+from django.urls import reverse
+from django.utils.html import format_html
 
 
 class CustomAdminSite(admin.AdminSite):
 	site_header = 'Relief Supplies Logistics Management'
 	site_title = 'Relief Supplies Logistics Admin'
 	index_title = 'Operations Control & Resource Overview'
+
+	def index(self, request, extra_context=None):
+		extra_context = extra_context or {}
+		extra_context['register_url'] = reverse('register')
+		return super().index(request, extra_context)
 
 	def get_app_list(self, request, app_label=None):
 		app_list = super().get_app_list(request, app_label)
